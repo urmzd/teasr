@@ -1,0 +1,24 @@
+# teasr
+
+> Automated project showcase capture — screenshots and GIFs from web apps, desktop, and terminal. Single binary, no runtime dependencies. Configured via TOML, supports Chrome DevTools Protocol for web capture, PTY-based terminal capture with ANSI-to-PNG rendering, and native screen capture. Encodes GIFs with gifski (pure Rust). Ships as a CLI and a GitHub Action.
+
+## Docs
+
+- [README](https://github.com/urmzd/teasr/blob/main/README.md): Installation, configuration, capture modes, and CI integration
+- [AGENTS.md](https://github.com/urmzd/teasr/blob/main/AGENTS.md): Architecture and development guide
+
+## API / Key Files
+
+- [crates/teasr-cli/src/main.rs](https://github.com/urmzd/teasr/blob/main/crates/teasr-cli/src/main.rs): CLI entry point
+- [crates/teasr-core/src/orchestrator.rs](https://github.com/urmzd/teasr/blob/main/crates/teasr-core/src/orchestrator.rs): Main run loop, scene dispatch
+- [crates/teasr-core/src/config.rs](https://github.com/urmzd/teasr/blob/main/crates/teasr-core/src/config.rs): TOML config parsing and auto-discovery
+- [crates/teasr-core/src/types.rs](https://github.com/urmzd/teasr/blob/main/crates/teasr-core/src/types.rs): Domain types (SceneConfig, OutputFormat, etc.)
+- [crates/teasr-core/src/capture/web.rs](https://github.com/urmzd/teasr/blob/main/crates/teasr-core/src/capture/web.rs): Chrome DevTools Protocol capture
+- [crates/teasr-core/src/capture/terminal.rs](https://github.com/urmzd/teasr/blob/main/crates/teasr-core/src/capture/terminal.rs): PTY-based terminal capture
+- [crates/teasr-core/src/capture/screen.rs](https://github.com/urmzd/teasr/blob/main/crates/teasr-core/src/capture/screen.rs): Native screen capture (xcap)
+- [crates/teasr-term-render/src/lib.rs](https://github.com/urmzd/teasr/blob/main/crates/teasr-term-render/src/lib.rs): ANSI to SVG to PNG rendering pipeline
+
+## Optional
+
+- [CONTRIBUTING](https://github.com/urmzd/teasr/blob/main/CONTRIBUTING.md): How to contribute
+- [Skill](https://github.com/urmzd/teasr/blob/main/skills/teasr/SKILL.md): Agent skill for capturing project showcases
