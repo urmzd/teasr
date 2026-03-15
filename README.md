@@ -1,6 +1,19 @@
-# teasr
+<p align="center">
+  <h1 align="center">teasr</h1>
+  <p align="center">
+    Automated project showcase capture — screenshots and GIFs from web apps, desktop, and terminal. Single binary, no runtime dependencies.
+    <br /><br />
+    <a href="https://github.com/urmzd/teasr/releases">Download</a>
+    &middot;
+    <a href="https://github.com/urmzd/teasr/issues">Report Bug</a>
+    &middot;
+    <a href="https://github.com/urmzd/teasr/blob/main/.github/actions/teasr/action.yml">CI Integration</a>
+  </p>
+</p>
 
-Automated project showcase capture — screenshots and GIFs from web apps, desktop, and terminal. Single binary, no runtime dependencies.
+<p align="center">
+  <a href="https://github.com/urmzd/teasr/actions/workflows/ci.yml"><img src="https://github.com/urmzd/teasr/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+</p>
 
 ## Why teasr
 
@@ -230,6 +243,12 @@ teasr is a Cargo workspace with three crates:
 | [`teasr-cli`](crates/teasr-cli) | CLI entry point (`teasr` binary) |
 | [`teasr-core`](crates/teasr-core) | Capture, config, and orchestration library |
 | [`teasr-term-render`](crates/teasr-term-render) | ANSI → SVG → PNG rendering library |
+
+## Agent Skill
+
+```bash
+npx skills add urmzd/teasr
+```
 
 ## License
 
