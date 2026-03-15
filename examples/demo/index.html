@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>tease — project showcase capture</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #0f0f13;
+      color: #e4e4e7;
+      min-height: 100vh;
+    }
+    .hero {
+      text-align: center;
+      padding: 80px 24px 48px;
+      background: linear-gradient(135deg, #18181b 0%, #1a1025 50%, #18181b 100%);
+    }
+    .hero h1 {
+      font-size: 4rem;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      background: linear-gradient(135deg, #a78bfa, #818cf8, #6366f1);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .hero p {
+      margin-top: 12px;
+      font-size: 1.25rem;
+      color: #a1a1aa;
+      max-width: 520px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    .badges {
+      margin-top: 24px;
+      display: flex;
+      gap: 8px;
+      justify-content: center;
+    }
+    .badge {
+      padding: 4px 12px;
+      border-radius: 999px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      border: 1px solid rgba(255,255,255,0.1);
+    }
+    .badge-purple { background: rgba(139,92,246,0.15); color: #a78bfa; }
+    .badge-blue { background: rgba(96,165,250,0.15); color: #93c5fd; }
+    .badge-green { background: rgba(74,222,128,0.15); color: #86efac; }
+
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 24px;
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 48px 24px;
+    }
+    .card {
+      background: #1c1c22;
+      border: 1px solid #2a2a33;
+      border-radius: 12px;
+      padding: 32px 24px;
+      transition: border-color 0.2s;
+    }
+    .card:hover { border-color: #6366f1; }
+    .card-icon {
+      font-size: 2rem;
+      margin-bottom: 16px;
+      display: block;
+    }
+    .card h3 { font-size: 1.1rem; font-weight: 700; margin-bottom: 8px; }
+    .card p { font-size: 0.9rem; color: #a1a1aa; line-height: 1.5; }
+
+    .config-section {
+      max-width: 720px;
+      margin: 0 auto;
+      padding: 0 24px 64px;
+    }
+    .config-section h2 {
+      font-size: 1.5rem;
+      font-weight: 700;
+      margin-bottom: 16px;
+      text-align: center;
+    }
+    pre {
+      background: #1c1c22;
+      border: 1px solid #2a2a33;
+      border-radius: 10px;
+      padding: 24px;
+      overflow-x: auto;
+      font-size: 0.85rem;
+      line-height: 1.6;
+      font-family: 'SF Mono', 'Fira Code', Menlo, monospace;
+    }
+    .kw { color: #c084fc; }
+    .str { color: #86efac; }
+    .fn { color: #93c5fd; }
+    .cm { color: #52525b; }
+  </style>
+</head>
+<body>
+  <div class="hero">
+    <h1>tease</h1>
+    <p>Automated screenshots, GIFs, and videos from your web apps, desktop, and terminal.</p>
+    <div class="badges">
+      <span class="badge badge-purple">PNG</span>
+      <span class="badge badge-blue">GIF</span>
+      <span class="badge badge-green">MP4</span>
+    </div>
+  </div>
+
+  <div class="cards">
+    <div class="card">
+      <span class="card-icon">&#127760;</span>
+      <h3>Web Capture</h3>
+      <p>Navigate pages with Playwright, execute actions, and capture full-page screenshots or video recordings.</p>
+    </div>
+    <div class="card">
+      <span class="card-icon">&#128187;</span>
+      <h3>Screen Capture</h3>
+      <p>Capture desktop windows and native apps. Run setup commands, crop regions, and record screen video.</p>
+    </div>
+    <div class="card">
+      <span class="card-icon">&#9000;</span>
+      <h3>Terminal Capture</h3>
+      <p>Run CLI commands, preserve ANSI colors, and render styled terminal output as beautiful images.</p>
+    </div>
+  </div>
+
+  <div class="config-section">
+    <h2>One config. Three modes.</h2>
+    <pre><span class="kw">import</span> { <span class="fn">defineConfig</span> } <span class="kw">from</span> <span class="str">"tease"</span>;
+
+<span class="kw">export default</span> <span class="fn">defineConfig</span>({
+  <span class="cm">// Start your dev server</span>
+  server: { command: <span class="str">"npm run dev"</span>, url: <span class="str">"http://localhost:3000"</span> },
+
+  scenes: [
+    { type: <span class="str">"web"</span>,      url: <span class="str">"/"</span>,              name: <span class="str">"homepage"</span> },
+    { type: <span class="str">"terminal"</span>, command: <span class="str">"npm test"</span>,   name: <span class="str">"tests"</span> },
+    { type: <span class="str">"screen"</span>,   name: <span class="str">"desktop"</span>,        setup: <span class="str">"open MyApp"</span> },
+  ],
+
+  output: { dir: <span class="str">"./showcase"</span>, formats: [<span class="str">"png"</span>, <span class="str">"gif"</span>] },
+});</pre>
+  </div>
+</body>
+</html>

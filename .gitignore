@@ -1,5 +1,6 @@
 node_modules/
 dist/
 tease-output/
+showcase/
 *.tgz
 .DS_Store
