@@ -58,6 +58,8 @@ cli
           log.file(file);
         }
       }
+
+      process.exit(0);
     } catch (err) {
       log.error(err instanceof Error ? err.message : String(err));
       process.exit(1);
