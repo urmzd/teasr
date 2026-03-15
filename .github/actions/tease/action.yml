@@ -1,5 +1,11 @@
 name: "tease"
-description: "Capture project showcase assets (screenshots, GIFs, videos)"
+description: "Capture project showcase assets — screenshots, GIFs, and videos from web apps, desktop, and terminal"
+author: "urmzd"
+
+branding:
+  icon: "camera"
+  color: "purple"
+
 inputs:
   config:
     description: "Path to config file"
@@ -18,6 +24,11 @@ inputs:
     description: "Node.js version"
     required: false
     default: "20"
+
+outputs:
+  output-dir:
+    description: "Path to the directory containing captured assets"
+    value: ${{ inputs.output }}
 
 runs:
   using: "composite"
@@ -38,24 +49,30 @@ runs:
     - name: Install Ollama
       if: inputs.ollama-model != ''
       shell: bash
+      env:
+        OLLAMA_MODEL: ${{ inputs.ollama-model }}
       run: |
         curl -fsSL https://ollama.com/install.sh | sh
         ollama serve &
         sleep 5
-        ollama pull ${{ inputs.ollama-model }}
+        ollama pull "$OLLAMA_MODEL"
 
     - name: Run tease
       shell: bash
+      env:
+        TEASE_CONFIG: ${{ inputs.config }}
+        TEASE_FORMATS: ${{ inputs.formats }}
+        TEASE_OUTPUT: ${{ inputs.output }}
       run: |
         ARGS=""
-        if [ -n "${{ inputs.config }}" ]; then
-          ARGS="$ARGS --config ${{ inputs.config }}"
+        if [ -n "$TEASE_CONFIG" ]; then
+          ARGS="$ARGS --config $TEASE_CONFIG"
         fi
-        if [ -n "${{ inputs.formats }}" ]; then
-          ARGS="$ARGS --formats ${{ inputs.formats }}"
+        if [ -n "$TEASE_FORMATS" ]; then
+          ARGS="$ARGS --formats $TEASE_FORMATS"
         fi
-        if [ -n "${{ inputs.output }}" ]; then
-          ARGS="$ARGS --output ${{ inputs.output }}"
+        if [ -n "$TEASE_OUTPUT" ]; then
+          ARGS="$ARGS --output $TEASE_OUTPUT"
         fi
         npx tease $ARGS
 
