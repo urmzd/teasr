@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.1.11 (2026-03-16)
+
+### Bug Fixes
+
+- **ci**: add clang and libclang-dev for bindgen in cross image ([d68833f](https://github.com/urmzd/teasr/commit/d68833fd92c4a9905fd1c9348ca6b3087f9e4137))
+
+[Full Changelog](https://github.com/urmzd/teasr/compare/v0.1.10...v0.1.11)
+
+
 ## 0.1.10 (2026-03-16)
 
 ### Bug Fixes
