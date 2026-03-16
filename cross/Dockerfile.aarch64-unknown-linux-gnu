@@ -8,6 +8,8 @@ RUN apt-get update && apt-get install -y \
         g++-aarch64-linux-gnu \
         libc6-dev-arm64-cross \
         pkg-config \
+        clang \
+        libclang-dev \
     && rm -rf /var/lib/apt/lists/*
 
 # Add arm64 architecture and package sources
