@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.2.2 (2026-03-17)
+
+### Bug Fixes
+
+- **ci**: fix asset upload by using nullglob for platform-specific files ([76f742f](https://github.com/urmzd/teasr/commit/76f742f77a4040bc3e31c1de0ac83ba1f0b1c254))
+
+[Full Changelog](https://github.com/urmzd/teasr/compare/v0.2.1...v0.2.2)
+
+
 ## 0.2.1 (2026-03-17)
 
 ### Bug Fixes
