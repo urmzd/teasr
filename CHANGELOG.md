@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.3.0 (2026-03-17)
+
+### Features
+
+- add chrome-framed screen capture, resilient orchestrator, and CI headless support ([5a05307](https://github.com/urmzd/teasr/commit/5a053078cc491a65aae344358ac45709c86df5fb))
+
+[Full Changelog](https://github.com/urmzd/teasr/compare/v0.2.2...v0.3.0)
+
+
 ## 0.2.2 (2026-03-17)
 
 ### Bug Fixes
