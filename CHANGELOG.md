@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.2.0 (2026-03-17)
+
+### Features
+
+- add dynamic web capture with GIF support, shell login mode, and font fallback ([53fe3e8](https://github.com/urmzd/teasr/commit/53fe3e8e408fb4a89385d843e4d56c77a113e317))
+
+[Full Changelog](https://github.com/urmzd/teasr/compare/v0.1.12...v0.2.0)
+
+
 ## 0.1.12 (2026-03-17)
 
 ### Bug Fixes
