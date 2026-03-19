@@ -1,5 +1,30 @@
 # Changelog
 
+## 0.6.0 (2026-03-19)
+
+### Features
+
+- **terminal**: support unbounded rows and improved frame capture ([f87cbf8](https://github.com/urmzd/teasr/commit/f87cbf8caf4f319895d45639374ef9398111e9af))
+- **cli**: add fps and seconds override flags ([23efe1a](https://github.com/urmzd/teasr/commit/23efe1a5f2f5dc80b74193acf61359c88b47c2c0))
+- **convert**: support configurable gif encoding ([021e77e](https://github.com/urmzd/teasr/commit/021e77ef37e1a26bf1857336ab1b18b94cbc9bba))
+- **core**: introduce configurable output formats and frame timing ([c36779c](https://github.com/urmzd/teasr/commit/c36779c490163280a9913bb98df801d738050a1f))
+
+### Bug Fixes
+
+- **chrome**: use temp files instead of data URLs for HTML frames ([369cdf5](https://github.com/urmzd/teasr/commit/369cdf5f59e9dde2c1c2aa7239e31760115cf844))
+
+### Documentation
+
+- **config**: update example config to new output format syntax ([1acf312](https://github.com/urmzd/teasr/commit/1acf31243c25e0ee78ac051ceb60a5086086bf92))
+
+### Miscellaneous
+
+- **assets**: update showcase materials ([f28381d](https://github.com/urmzd/teasr/commit/f28381d49ea8616bbf47ec537667b7ff8cb3900a))
+- **deps**: bump teasr crates to 0.5.0 ([c2ecec4](https://github.com/urmzd/teasr/commit/c2ecec4a7032da6e9a9f72377428f88c4106d50b))
+
+[Full Changelog](https://github.com/urmzd/teasr/compare/v0.5.0...v0.6.0)
+
+
 ## 0.5.0 (2026-03-19)
 
 ### Features
