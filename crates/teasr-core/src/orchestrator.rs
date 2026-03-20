@@ -110,7 +110,7 @@ pub async fn run(config: &ResolvedConfig) -> Result<Vec<CaptureResult>> {
             config.server.as_ref(),
             &output_dir,
             config.frame_duration_ms,
-            config.seconds,
+            config.scene_timeout,
         )
         .await
         {

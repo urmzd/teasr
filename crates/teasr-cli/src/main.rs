@@ -38,9 +38,13 @@ enum Command {
         #[arg(long)]
         fps: Option<u32>,
 
-        /// Per-scene capture timeout in seconds (overrides config)
+        /// Target output duration in seconds (overrides config)
         #[arg(long)]
         seconds: Option<f64>,
+
+        /// Per-scene wall-clock timeout in seconds (overrides config)
+        #[arg(long)]
+        scene_timeout: Option<f64>,
     },
 }
 
@@ -56,6 +60,7 @@ async fn main() -> Result<()> {
         timeout,
         fps,
         seconds,
+        scene_timeout,
     }) = cli.command
     else {
         Cli::parse_from(["teasr", "--help"]);
@@ -73,7 +78,7 @@ async fn main() -> Result<()> {
 
     let timeout_dur = std::time::Duration::from_millis(timeout);
 
-    let result = tokio::time::timeout(timeout_dur, run(config, output, formats, fps, seconds)).await;
+    let result = tokio::time::timeout(timeout_dur, run(config, output, formats, fps, seconds, scene_timeout)).await;
 
     match result {
         Ok(Ok(())) => Ok(()),
@@ -90,6 +95,7 @@ async fn run(
     formats: Option<Vec<String>>,
     fps: Option<u32>,
     seconds: Option<f64>,
+    scene_timeout: Option<f64>,
 ) -> Result<()> {
     let config_path = if let Some(path) = &config {
         path.clone()
@@ -112,6 +118,10 @@ async fn run(
 
     if let Some(secs) = seconds {
         config.seconds = secs;
+    }
+
+    if let Some(t) = scene_timeout {
+        config.scene_timeout = t;
     }
 
     if let Some(formats) = &formats {

@@ -228,8 +228,10 @@ pub struct TeaseConfig {
     pub output: Option<OutputConfig>,
     /// Frames per second (converted to frame_duration_ms = 1000/fps).
     pub fps: Option<u32>,
-    /// Per-scene capture timeout in seconds.
+    /// Target output duration in seconds (controls GIF/video length).
     pub seconds: Option<f64>,
+    /// Per-scene wall-clock timeout in seconds.
+    pub scene_timeout: Option<f64>,
 }
 
 /// Fully resolved config with defaults applied.
@@ -241,8 +243,10 @@ pub struct ResolvedConfig {
     pub output: OutputConfig,
     /// Global frame duration in ms, derived from fps (default: 24fps → 41ms).
     pub frame_duration_ms: u64,
-    /// Per-scene capture timeout in seconds (default: 2.5s).
+    /// Target output duration in seconds (default: 2.5s).
     pub seconds: f64,
+    /// Per-scene wall-clock timeout in seconds (default: 60s).
+    pub scene_timeout: f64,
 }
 
 impl TeaseConfig {
@@ -254,6 +258,7 @@ impl TeaseConfig {
             output: self.output.unwrap_or_default(),
             frame_duration_ms: 1000 / self.fps.unwrap_or(24).max(1) as u64,
             seconds: self.seconds.unwrap_or(2.5),
+            scene_timeout: self.scene_timeout.unwrap_or(60.0),
         }
     }
 }
