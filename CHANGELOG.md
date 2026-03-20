@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.8.0 (2026-03-20)
+
+### Features
+
+- **capture**: warn when capturing entire monitor ([275ee41](https://github.com/urmzd/teasr/commit/275ee412ca777d27113a54fb8e52362fbdf96f24))
+- **config**: add per-scene wall-clock timeout configuration ([b84ef1e](https://github.com/urmzd/teasr/commit/b84ef1e81d5cf89854f424e5a7ca5b45d37ae11a))
+
+### Miscellaneous
+
+- **showcase**: add desktop demo and update guides ([bfa373a](https://github.com/urmzd/teasr/commit/bfa373a17e69131164e2b8cdfe7f46afc4e04570))
+- **config**: add test for expanded output formats ([1fc2c66](https://github.com/urmzd/teasr/commit/1fc2c666e97a1532efff0b6a409b5d3424ad35ff))
+- upgrade dependencies to latest versions ([d6672c3](https://github.com/urmzd/teasr/commit/d6672c312b9de6265532b7e52c1363b42f79b320))
+
+[Full Changelog](https://github.com/urmzd/teasr/compare/v0.7.0...v0.8.0)
+
+
 ## 0.7.0 (2026-03-19)
 
 ### Features
