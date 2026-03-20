@@ -109,6 +109,30 @@ duration = 500
     }
 
     #[test]
+    fn load_expanded_output_formats() {
+        let f = write_temp_config(
+            r#"
+[output]
+dir = "./showcase"
+
+[[output.formats]]
+output_type = "png"
+
+[[scenes]]
+type = "terminal"
+name = "demo"
+
+[[scenes.interactions]]
+type = "type"
+text = "echo hello"
+"#,
+        );
+        let config = load_config(f.path()).unwrap();
+        assert_eq!(config.output.dir, "./showcase");
+        assert_eq!(config.output.formats.len(), 1);
+    }
+
+    #[test]
     fn reject_empty_scenes() {
         let f = write_temp_config(
             r#"
