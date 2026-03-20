@@ -47,6 +47,10 @@ impl ScreenBackend {
         let img = if let Some(ref query) = self.window {
             capture_window(query)?
         } else {
+            warn!(
+                "capturing entire monitor — this may expose sensitive content. \
+                 Set `window` to target a specific application instead."
+            );
             capture_monitor(self.display)?
         };
 
