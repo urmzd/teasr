@@ -15,6 +15,9 @@ pub struct TerminalBackend {
     theme: String,
     title: Option<String>,
     frame_duration: u64,
+    cwd: Option<String>,
+    font_family: Option<String>,
+    font_size: Option<f64>,
     writer: Option<Box<dyn std::io::Write + Send>>,
     buffer: Option<Arc<Mutex<Vec<u8>>>>,
     emulator: Option<teasr_term_render::TerminalEmulator>,
@@ -23,12 +26,16 @@ pub struct TerminalBackend {
 }
 
 impl TerminalBackend {
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         cols: usize,
         rows: Option<usize>,
         theme: &str,
         title: Option<String>,
         frame_duration: u64,
+        cwd: Option<String>,
+        font_family: Option<String>,
+        font_size: Option<f64>,
     ) -> Self {
         Self {
             cols,
@@ -36,6 +43,9 @@ impl TerminalBackend {
             theme: theme.to_string(),
             title,
             frame_duration,
+            cwd,
+            font_family,
+            font_size,
             writer: None,
             buffer: None,
             emulator: None,
@@ -57,7 +67,13 @@ impl TerminalBackend {
             emulator.feed(&data);
         }
         let grid = emulator.snapshot();
-        teasr_term_render::render_grid_to_png(&grid, &self.theme, self.title.as_deref())
+        let opts = teasr_term_render::RenderOptions {
+            theme_name: &self.theme,
+            title: self.title.as_deref(),
+            font_family: self.font_family.as_deref(),
+            font_size: self.font_size,
+        };
+        teasr_term_render::render_grid_to_png(&grid, &opts)
     }
 }
 
@@ -140,6 +156,36 @@ impl CaptureBackend for TerminalBackend {
 
         // Wait for shell prompt
         thread::sleep(Duration::from_millis(200));
+
+        // If cwd is set, cd into it and clear the screen so it looks clean
+        if let Some(ref cwd) = self.cwd {
+            use std::io::Write;
+            let abs_cwd = std::path::Path::new(cwd);
+            let abs_cwd = if abs_cwd.is_relative() {
+                std::env::current_dir()
+                    .context("failed to get current dir")?
+                    .join(abs_cwd)
+            } else {
+                abs_cwd.to_path_buf()
+            };
+            let abs_cwd = abs_cwd.to_string_lossy();
+            let writer = self.writer.as_mut().unwrap();
+            writer
+                .write_all(format!("cd {} && clear\n", shell_escape(&abs_cwd)).as_bytes())
+                .context("failed to cd into cwd")?;
+            thread::sleep(Duration::from_millis(200));
+            // Drain the buffer so the cd command doesn't appear in output
+            if let Some(ref buffer) = self.buffer {
+                buffer.lock().unwrap().clear();
+            }
+            if let Some(ref mut emulator) = self.emulator {
+                *emulator = if let Some(rows) = self.rows {
+                    teasr_term_render::TerminalEmulator::new(self.cols, rows)
+                } else {
+                    teasr_term_render::TerminalEmulator::new_unbounded(self.cols)
+                };
+            }
+        }
 
         // Keep the tempdir alive by leaking it (it'll be cleaned up on process exit)
         std::mem::forget(tmp);
@@ -233,6 +279,10 @@ impl CaptureBackend for TerminalBackend {
         }
         Ok(())
     }
+}
+
+fn shell_escape(s: &str) -> String {
+    format!("'{}'", s.replace('\'', "'\\''"))
 }
 
 /// Convert a key name to the bytes to send to a PTY.
