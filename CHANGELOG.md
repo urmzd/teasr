@@ -1,5 +1,28 @@
 # Changelog
 
+## 0.10.1 (2026-03-21)
+
+### Bug Fixes
+
+- **orchestrator**: change full_page default to false ([6d316ed](https://github.com/urmzd/teasr/commit/6d316ed32a3210facf98fab0e097c96d7a75d62b))
+- **capture**: remove unused sleep in web capture ([097ea5a](https://github.com/urmzd/teasr/commit/097ea5a9a3c6f549a49c72f42b43e800b093e6f4))
+
+### Documentation
+
+- **showcase**: regenerate showcase assets with new timings ([3663cf2](https://github.com/urmzd/teasr/commit/3663cf2bc34b47e52c40ad23a8fc7969032c151e))
+
+### Refactoring
+
+- **svg**: use grid.dimensions() helper method ([1638c7e](https://github.com/urmzd/teasr/commit/1638c7e979b8aaffa0075a39a663294bdfbe54b6))
+
+### Miscellaneous
+
+- **config**: update showcase scene configuration ([7c44a57](https://github.com/urmzd/teasr/commit/7c44a5765df6c41c3af7d5a7a615afc67461790d))
+- **deps**: bump version to 0.9.0 ([2069773](https://github.com/urmzd/teasr/commit/206977319f31eaf85f619d19d875e34c77efce75))
+
+[Full Changelog](https://github.com/urmzd/teasr/compare/v0.10.0...v0.10.1)
+
+
 ## 0.10.0 (2026-03-21)
 
 ### Features
