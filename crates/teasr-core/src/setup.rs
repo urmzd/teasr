@@ -1,7 +1,10 @@
 use anyhow::{Context, Result, bail};
+use crossterm::style::Stylize;
 use std::io::Read;
 use std::path::{Path, PathBuf};
-use tracing::info;
+use tracing::debug;
+
+use crate::ui;
 
 /// A font available for installation.
 pub struct FontEntry {
@@ -24,6 +27,12 @@ pub const FONT_REGISTRY: &[FontEntry] = &[
         description: "JetBrains Mono typeface for developers",
         license: "Apache-2.0",
         url: "https://github.com/JetBrains/JetBrainsMono/releases/latest/download/JetBrainsMono-2.304.zip",
+    },
+    FontEntry {
+        name: "Monaspace Nerd Font",
+        description: "GitHub's Monaspace superfamily with Nerd Font icons and Powerline glyphs",
+        license: "OFL-1.1 (SIL Open Font License)",
+        url: "https://github.com/ryanoasis/nerd-fonts/releases/latest/download/Monaspace.zip",
     },
 ];
 
@@ -74,8 +83,8 @@ pub async fn install_font(name: &str) -> Result<()> {
             format!("unknown font: {name}. Available: {}", available.join(", "))
         })?;
 
-    info!("installing: {} ({})", entry.name, entry.license);
-    info!("downloading from: {}", entry.url);
+    let pb = ui::spinner(&format!("installing: {} ({})", entry.name, entry.license));
+    debug!("downloading from: {}", entry.url);
 
     let response = reqwest::get(entry.url)
         .await
@@ -102,7 +111,7 @@ pub async fn install_font(name: &str) -> Result<()> {
         let _ = std::process::Command::new("fc-cache").arg("-f").status();
     }
 
-    info!("fonts installed to: {}", font_dir.display());
+    ui::spinner_done(&pb, Some(&format!("installed to {}", font_dir.display())));
     Ok(())
 }
 
@@ -134,7 +143,7 @@ fn extract_fonts(zip_bytes: &[u8], dest: &Path) -> Result<()> {
         std::fs::write(&dest_path, &data)
             .with_context(|| format!("failed to write {}", dest_path.display()))?;
 
-        info!("  extracted: {}", filename.to_string_lossy());
+        debug!("  extracted: {}", filename.to_string_lossy());
         count += 1;
     }
 
@@ -142,18 +151,28 @@ fn extract_fonts(zip_bytes: &[u8], dest: &Path) -> Result<()> {
         bail!("no font files found in archive");
     }
 
-    info!("{count} font files installed");
+    ui::phase_ok(&format!("{count} font files extracted"), None);
     Ok(())
 }
 
 /// List available fonts from the registry.
 pub fn list_fonts() {
-    println!("Available fonts:");
-    println!();
-    for entry in FONT_REGISTRY {
-        println!("  {} ", entry.name);
-        println!("    {}", entry.description);
-        println!("    License: {}", entry.license);
-        println!();
+    ui::header("available fonts");
+    let total = FONT_REGISTRY.len();
+    for (i, entry) in FONT_REGISTRY.iter().enumerate() {
+        let is_last = i == total - 1;
+        let connector = if is_last { "└─" } else { "├─" };
+        eprintln!("  {} {}", connector.dim(), entry.name.bold());
+        let branch = if is_last { "  " } else { "│ " };
+        eprintln!("  {}   {}", branch.dim(), entry.description.dim());
+        eprintln!(
+            "  {}   {}",
+            branch.dim(),
+            format!("License: {}", entry.license).dim()
+        );
+        if !is_last {
+            eprintln!("  {}", "│".dim());
+        }
     }
+    eprintln!();
 }
