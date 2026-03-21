@@ -1,6 +1,33 @@
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct FontConfig {
+    #[serde(default = "default_font_family")]
+    pub family: String,
+    pub path: Option<String>,
+    #[serde(default = "default_font_size")]
+    pub size: f64,
+}
+
+fn default_font_family() -> String {
+    "JetBrainsMono Nerd Font".to_string()
+}
+
+fn default_font_size() -> f64 {
+    14.0
+}
+
+impl Default for FontConfig {
+    fn default() -> Self {
+        Self {
+            family: default_font_family(),
+            path: None,
+            size: default_font_size(),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "output_type", rename_all = "lowercase")]
 pub enum OutputFormat {
     Png(PngConfig),
@@ -139,10 +166,38 @@ pub enum SceneConfig {
         theme: Option<String>,
         cols: Option<usize>,
         rows: Option<usize>,
+        cwd: Option<String>,
+        font: Option<FontConfig>,
+        intro: Option<SplashConfig>,
+        outro: Option<SplashConfig>,
         #[serde(default)]
         interactions: Vec<Interaction>,
         frame_duration: Option<u64>,
     },
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SplashConfig {
+    /// Inline text to display (supports \n for newlines)
+    pub text: Option<String>,
+    /// Path to a .txt or .ans file with ASCII art
+    pub file: Option<String>,
+    /// Path to a PNG/SVG image to overlay
+    pub image: Option<String>,
+    /// Duration in ms to show the splash frame
+    #[serde(default = "default_splash_duration")]
+    pub duration: u64,
+    /// Center the content vertically and horizontally
+    #[serde(default = "default_true")]
+    pub center: bool,
+}
+
+fn default_splash_duration() -> u64 {
+    2000
+}
+
+fn default_true() -> bool {
+    true
 }
 
 impl SceneConfig {
@@ -226,6 +281,7 @@ pub struct TeaseConfig {
     pub server: Option<ServerConfig>,
     pub viewport: Option<ViewportConfig>,
     pub output: Option<OutputConfig>,
+    pub font: Option<FontConfig>,
     /// Frames per second (converted to frame_duration_ms = 1000/fps).
     pub fps: Option<u32>,
     /// Target output duration in seconds (controls GIF/video length).
@@ -241,6 +297,7 @@ pub struct ResolvedConfig {
     pub server: Option<ServerConfig>,
     pub viewport: ViewportConfig,
     pub output: OutputConfig,
+    pub font: FontConfig,
     /// Global frame duration in ms, derived from fps (default: 24fps → 41ms).
     pub frame_duration_ms: u64,
     /// Target output duration in seconds (default: 2.5s).
@@ -256,6 +313,7 @@ impl TeaseConfig {
             server: self.server,
             viewport: self.viewport.unwrap_or_default(),
             output: self.output.unwrap_or_default(),
+            font: self.font.unwrap_or_default(),
             frame_duration_ms: 1000 / self.fps.unwrap_or(24).max(1) as u64,
             seconds: self.seconds.unwrap_or(2.5),
             scene_timeout: self.scene_timeout.unwrap_or(60.0),
