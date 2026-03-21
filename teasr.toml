@@ -12,12 +12,19 @@ family = "MonaspiceNe Nerd Font"
 type = "web"
 url = "https://github.com/urmzd/teasr"
 name = "github"
+viewport = { width = 1280, height = 800 }
+full_page = false
 formats = [{ output_type = "gif" }, { output_type = "png" }]
-frame_duration = 600
+frame_duration = 200
 
 [[scenes.interactions]]
 type = "wait"
-duration = 3000
+duration = 2000
+[[scenes.interactions]]
+type = "snapshot"
+[[scenes.interactions]]
+type = "wait"
+duration = 400
 [[scenes.interactions]]
 type = "snapshot"
 [[scenes.interactions]]
@@ -25,7 +32,12 @@ type = "scroll-to"
 selector = "article"
 [[scenes.interactions]]
 type = "wait"
-duration = 600
+duration = 800
+[[scenes.interactions]]
+type = "snapshot"
+[[scenes.interactions]]
+type = "wait"
+duration = 400
 [[scenes.interactions]]
 type = "snapshot"
 
