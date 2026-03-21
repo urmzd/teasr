@@ -10,7 +10,7 @@ pub struct FontConfig {
 }
 
 fn default_font_family() -> String {
-    "JetBrainsMono Nerd Font".to_string()
+    "MonaspiceNe Nerd Font".to_string()
 }
 
 fn default_font_size() -> f64 {
