@@ -130,7 +130,6 @@ impl CaptureBackend for WebBackend {
                         sel.replace('\'', "\\'")
                     );
                     page.evaluate(js).await.context("scroll failed")?;
-                    tokio::time::sleep(Duration::from_millis(500)).await;
                 }
                 Ok(vec![])
             }
