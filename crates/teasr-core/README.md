@@ -8,7 +8,7 @@ This crate is the engine behind the `teasr` CLI. Use it directly to embed teasr 
 
 ```toml
 [dependencies]
-teasr-core = "0.2"
+teasr-core = "0.7"
 tokio = { version = "1", features = ["full"] }
 ```
 
@@ -53,8 +53,11 @@ let config: ResolvedConfig = config::load_config(&path)?;
 pub struct ResolvedConfig {
     pub scenes: Vec<SceneConfig>,
     pub server: Option<ServerConfig>,
-    pub viewport: ViewportConfig,   // default: 1280x720
-    pub output: OutputConfig,       // default dir: ./teasr-output, formats: [png]
+    pub viewport: ViewportConfig,     // default: 1280x720
+    pub output: OutputConfig,         // default dir: ./teasr-output, formats: [Png]
+    pub frame_duration_ms: u64,       // derived from fps (default: 24fps → 41ms)
+    pub seconds: f64,                 // target output duration (default: 2.5s)
+    pub scene_timeout: f64,           // per-scene wall-clock timeout (default: 60s)
 }
 ```
 
@@ -84,7 +87,11 @@ pub struct OutputConfig {
 ### `OutputFormat`
 
 ```rust
-pub enum OutputFormat { Png, Gif, Mp4 }
+pub enum OutputFormat {
+    Png(PngConfig),
+    Gif(GifConfig),     // quality: u8, fast: bool, repeat: Option<u16>
+    Mp4(Mp4Config),     // fps: u32
+}
 ```
 
 ### `CaptureResult`
@@ -126,10 +133,10 @@ Captures a display or region using xcap. Supports display index selection and pi
 ## GIF Conversion (`convert::gif`)
 
 ```rust
-pub fn png_to_gif(png_path: &Path, gif_path: &Path) -> Result<()>
+pub fn frames_to_gif(frames: &[CapturedFrame], gif_path: &Path, config: &GifConfig) -> Result<()>
 ```
 
-Converts a PNG to a single-frame GIF using gifski (pure Rust, no FFmpeg).
+Assembles multiple captured frames into an animated GIF using gifski (pure Rust, no FFmpeg).
 
 ## Server Lifecycle
 

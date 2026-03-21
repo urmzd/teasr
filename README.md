@@ -70,13 +70,13 @@ timeout = 10000
 
 [output]
 dir = "./showcase"
-formats = ["png"]
+formats = [{ output_type = "png" }]
 
 [[scenes]]
 type = "web"
 url = "/"
 name = "homepage"
-formats = ["gif", "png"]
+formats = [{ output_type = "gif" }, { output_type = "png" }]
 
 [[scenes.interactions]]
 type = "snapshot"
@@ -94,7 +94,7 @@ name = "cli-help"
 theme = "dracula"
 cols = 90
 rows = 24
-formats = ["gif", "png"]
+formats = [{ output_type = "gif" }, { output_type = "png" }]
 
 [[scenes.interactions]]
 type = "type"
@@ -146,7 +146,7 @@ name = "dashboard"
 
 # Optional
 viewport = { width = 1440, height = 900 }
-formats = ["png", "gif"]
+formats = [{ output_type = "png" }, { output_type = "gif" }]
 
 [[scenes.interactions]]
 type = "click"
@@ -164,9 +164,9 @@ name = "modal-open"
 | `url` | string | required | Path (joined to `server.url`) or full URL |
 | `name` | string | url value | Output filename base |
 | `viewport` | object | `1280x720` | `{ width, height }` |
-| `formats` | array | `output.formats` | Per-scene format override |
+| `formats` | array | `output.formats` | Per-scene format override (`[{ output_type = "png" }]`) |
 | `interactions` | array | `[]` | Sequence of interactions |
-| `full_page` | boolean | `true` | Capture full page height or just viewport |
+| `full_page` | boolean | — | Capture full page height or just viewport |
 | `frame_duration` | integer | `100` | Milliseconds per frame in GIF output |
 
 **Supported interactions:** `click`, `hover`, `scroll-to`, `wait`, `snapshot`, `type`, `key`
@@ -182,7 +182,7 @@ name = "test-output"
 theme = "dracula"
 cols = 100
 rows = 24
-formats = ["gif", "png"]
+formats = [{ output_type = "gif" }, { output_type = "png" }]
 frame_duration = 80
 
 [[scenes.interactions]]
@@ -203,7 +203,7 @@ duration = 2000
 
 | Field | Type | Default | Description |
 |-------|------|---------|-------------|
-| `name` | string | required | Output filename base |
+| `name` | string | `"recording"` | Output filename base |
 | `theme` | string | `"dracula"` | `"dracula"` or `"monokai"` |
 | `cols` | integer | `80` | Terminal width in columns |
 | `rows` | integer | `24` | Terminal height in rows |
@@ -225,7 +225,7 @@ setup = "open MyApp.app"
 delay = 2000
 theme = "dracula"
 title = "My App"
-formats = ["gif", "png"]
+formats = [{ output_type = "gif" }, { output_type = "png" }]
 
 [[scenes.interactions]]
 type = "snapshot"
@@ -274,7 +274,7 @@ timeout = 10000          # ms to wait for server to be ready (default: 10000)
 ```toml
 [output]
 dir = "./showcase"       # default: "./teasr-output"
-formats = ["png"]        # default: ["png"]. Options: "png", "gif"
+formats = [{ output_type = "png" }]  # default: [{ output_type = "png" }]. Options: "png", "gif", "mp4"
 ```
 
 ### `[[scenes]]`
@@ -305,13 +305,16 @@ teasr showme [OPTIONS]
 Options:
   -c, --config <PATH>      Path to teasr.toml (default: auto-discover)
   -o, --output <DIR>       Output directory (overrides config)
-      --formats <FMT,...>  Output formats: png, gif (overrides config)
+      --formats <FMT,...>  Output formats: png, gif, mp4 (overrides config)
       --verbose            Enable debug logging
       --timeout <MS>       Global timeout in ms [default: 60000]
+      --fps <N>            Frames per second (overrides config)
+      --seconds <N>        Target output duration in seconds (overrides config)
+      --scene-timeout <N>  Per-scene wall-clock timeout in seconds (overrides config)
   -h, --help               Print help
 ```
 
-`--formats` accepts comma-separated values: `--formats png,gif`
+`--formats` accepts comma-separated values: `--formats png,gif,mp4`
 
 ## Output Formats
 
@@ -319,25 +322,17 @@ Options:
 |--------|-------|
 | `png` | Lossless screenshot. Native, no external tools required. |
 | `gif` | Animated GIF from multi-frame session recording, encoded with gifski (pure Rust). |
+| `mp4` | Video output from multi-frame session recording. |
 
 ## CI Integration
 
-The GitHub Action downloads the appropriate pre-built binary, installs Chrome, runs teasr, and uploads output as a build artifact.
+The GitHub Action downloads the appropriate pre-built binary, installs Chrome, and runs `teasr showme`. All configuration comes from `teasr.toml`.
 
 ```yaml
 - uses: urmzd/teasr/.github/actions/teasr@main
   with:
-    config: "teasr.toml"     # optional, auto-discovered if omitted
-    formats: "png"            # optional, overrides config
-    output: "./showcase"      # optional, default: ./teasr-output
-    version: "latest"         # optional, pin to e.g. "0.2.0"
+    version: "latest"  # optional, pin to e.g. "0.7.0"
 ```
-
-**Outputs:**
-
-| Output | Description |
-|--------|-------------|
-| `output-dir` | Path to the directory containing captured assets |
 
 **Supported runners:** `ubuntu-*`, `macos-*`, `windows-*` on x64 and ARM64.
 

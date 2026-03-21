@@ -1,5 +1,5 @@
 name: "teasr"
-description: "Capture project showcase assets — screenshots, GIFs, and videos from web apps, desktop, and terminal"
+description: "Install teasr and capture project showcase assets from teasr.toml"
 author: "urmzd"
 
 branding:
@@ -7,25 +7,10 @@ branding:
   color: "purple"
 
 inputs:
-  config:
-    description: "Path to teasr.toml config file"
-    required: false
-  formats:
-    description: "Output formats (comma-separated: png,gif,mp4)"
-    required: false
-  output:
-    description: "Output directory"
-    required: false
-    default: "./teasr-output"
   version:
     description: "Teasr version to download (default: latest)"
     required: false
     default: "latest"
-
-outputs:
-  output-dir:
-    description: "Path to the directory containing captured assets"
-    value: ${{ inputs.output }}
 
 runs:
   using: "composite"
@@ -75,25 +60,4 @@ runs:
 
     - name: Run teasr
       shell: bash
-      env:
-        TEASR_CONFIG: ${{ inputs.config }}
-        TEASR_FORMATS: ${{ inputs.formats }}
-        TEASR_OUTPUT: ${{ inputs.output }}
-      run: |
-        ARGS=""
-        if [ -n "$TEASR_CONFIG" ]; then
-          ARGS="$ARGS --config $TEASR_CONFIG"
-        fi
-        if [ -n "$TEASR_FORMATS" ]; then
-          ARGS="$ARGS --formats $TEASR_FORMATS"
-        fi
-        if [ -n "$TEASR_OUTPUT" ]; then
-          ARGS="$ARGS --output $TEASR_OUTPUT"
-        fi
-        teasr $ARGS
-
-    - name: Upload artifacts
-      uses: actions/upload-artifact@v4
-      with:
-        name: teasr-output
-        path: ${{ inputs.output }}
+      run: teasr showme

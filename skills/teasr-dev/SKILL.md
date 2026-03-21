@@ -90,7 +90,7 @@ teasr uses TOML config (`teasr.toml`), auto-discovered by walking from cwd to fi
 
 - `.github/workflows/ci.yml` — build + clippy + test on every push/PR
 - `.github/workflows/release.yml` — semantic-release for 6 platform targets
-- `.github/actions/tease/action.yml` — composite GitHub Action for users
+- `.github/actions/teasr/action.yml` — composite GitHub Action for users
 - `sr.yaml` — semantic-release config (conventional commits)
 
 ## Commit Convention

@@ -21,16 +21,32 @@ cargo install teasr-cli
 ## Usage
 
 ```
-teasr [OPTIONS]
+teasr [COMMAND]
+
+Commands:
+  showme  Run capture scenes from teasr.toml
+  help    Print this message or the help of the given subcommand(s)
+
+Options:
+  -h, --help     Print help
+  -V, --version  Print version
+```
+
+### `teasr showme`
+
+```
+teasr showme [OPTIONS]
 
 Options:
   -c, --config <PATH>      Path to teasr.toml (default: auto-discover from cwd)
   -o, --output <DIR>       Output directory (overrides config)
-      --formats <FMT,...>  Output formats: png, gif (overrides config)
+      --formats <FMT,...>  Output formats: png, gif, mp4 (overrides config)
       --verbose            Enable debug logging
       --timeout <MS>       Global timeout in milliseconds [default: 60000]
+      --fps <N>            Frames per second (overrides config)
+      --seconds <N>        Target output duration in seconds (overrides config)
+      --scene-timeout <N>  Per-scene wall-clock timeout in seconds (overrides config)
   -h, --help               Print help
-  -V, --version            Print version
 ```
 
 ## Config Discovery
@@ -39,7 +55,7 @@ When `--config` is not provided, teasr walks up from the current directory to th
 
 ## Overrides
 
-`--output` and `--formats` override the corresponding values from `teasr.toml`. Formats are comma-separated: `--formats png,gif`.
+`--output` and `--formats` override the corresponding values from `teasr.toml`. Formats are comma-separated: `--formats png,gif,mp4`.
 
 ## Timeout
 

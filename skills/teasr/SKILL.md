@@ -18,31 +18,54 @@ Capture screenshots and GIFs from web apps, terminals, and screens.
    ```toml
    [output]
    dir = "./showcase"
-   formats = ["png"]
+   formats = [{ output_type = "png" }]
 
    [[scenes]]
    type = "terminal"
-   command = "my-cli --help"
    name = "cli-help"
+
+   [[scenes.interactions]]
+   type = "type"
+   text = "my-cli --help"
+
+   [[scenes.interactions]]
+   type = "key"
+   key = "enter"
+
+   [[scenes.interactions]]
+   type = "wait"
+   duration = 2000
    ```
 
-2. Run: `teasr $ARGUMENTS`
+2. Run: `teasr showme $ARGUMENTS`
 
 3. Output files are written to the configured output directory.
 
 ## Scene Types
 
 ### Terminal
-Runs a command in a PTY, captures ANSI output, renders to a styled PNG with terminal chrome.
+Scripts an interactive PTY session, captures frames at each interaction, and renders them as animated GIFs or PNGs with terminal chrome.
 
 ```toml
 [[scenes]]
 type = "terminal"
-command = "cargo test 2>&1"
 name = "test-output"
 theme = "dracula"     # or "monokai"
 cols = 100
-maxLines = 40
+rows = 24
+
+[[scenes.interactions]]
+type = "type"
+text = "cargo test 2>&1"
+speed = 50
+
+[[scenes.interactions]]
+type = "key"
+key = "enter"
+
+[[scenes.interactions]]
+type = "wait"
+duration = 2000
 ```
 
 ### Web
@@ -85,6 +108,9 @@ timeout = 10000
 |------|-------------|
 | `-c, --config <PATH>` | Path to teasr.toml |
 | `-o, --output <DIR>` | Output directory |
-| `--formats <FMT,...>` | Output formats: png, gif |
+| `--formats <FMT,...>` | Output formats: png, gif, mp4 |
 | `--verbose` | Enable debug logging |
 | `--timeout <MS>` | Global timeout (default: 60000) |
+| `--fps <N>` | Frames per second (overrides config) |
+| `--seconds <N>` | Target output duration in seconds |
+| `--scene-timeout <N>` | Per-scene wall-clock timeout in seconds |
