@@ -6,7 +6,8 @@ use crate::backend::CaptureBackend;
 use crate::capture;
 use crate::server::ManagedServer;
 use crate::types::{
-    CaptureResult, CapturedFrame, OutputFormat, ResolvedConfig, SceneConfig, ViewportConfig,
+    CaptureResult, CapturedFrame, FontConfig, OutputFormat, ResolvedConfig, SceneConfig,
+    ViewportConfig,
 };
 
 /// Build a backend for the given scene config.
@@ -15,6 +16,7 @@ fn build_backend(
     global_viewport: &ViewportConfig,
     server: Option<&crate::types::ServerConfig>,
     global_frame_duration_ms: u64,
+    global_font: &FontConfig,
 ) -> Box<dyn CaptureBackend> {
     let default_fd = global_frame_duration_ms;
     match scene {
@@ -23,15 +25,23 @@ fn build_backend(
             cols,
             rows,
             name,
+            cwd,
+            font,
             frame_duration,
             ..
-        } => Box::new(capture::terminal::TerminalBackend::new(
-            cols.unwrap_or(80),
-            *rows,
-            theme.as_deref().unwrap_or("dracula"),
-            name.clone(),
-            frame_duration.unwrap_or(default_fd),
-        )),
+        } => {
+            let effective_font = font.as_ref().unwrap_or(global_font);
+            Box::new(capture::terminal::TerminalBackend::new(
+                cols.unwrap_or(80),
+                *rows,
+                theme.as_deref().unwrap_or("dracula"),
+                name.clone(),
+                frame_duration.unwrap_or(default_fd),
+                cwd.clone(),
+                Some(effective_font.family.clone()),
+                Some(effective_font.size),
+            ))
+        }
         SceneConfig::Web {
             url,
             viewport,
@@ -85,6 +95,19 @@ pub async fn run(config: &ResolvedConfig) -> Result<Vec<CaptureResult>> {
     std::fs::create_dir_all(&output_dir)
         .with_context(|| format!("failed to create output dir: {}", output_dir.display()))?;
 
+    // Load custom font if configured
+    if let Some(ref path) = config.font.path {
+        teasr_term_render::load_extra_font(std::path::Path::new(path))?;
+    }
+    // Also load per-scene custom fonts
+    for scene in &config.scenes {
+        if let SceneConfig::Terminal { font: Some(ref f), .. } = scene {
+            if let Some(ref path) = f.path {
+                teasr_term_render::load_extra_font(std::path::Path::new(path))?;
+            }
+        }
+    }
+
     // Start server if configured
     let _server = match &config.server {
         Some(server_config) => Some(ManagedServer::start(server_config).await?),
@@ -111,6 +134,7 @@ pub async fn run(config: &ResolvedConfig) -> Result<Vec<CaptureResult>> {
             &output_dir,
             config.frame_duration_ms,
             config.scene_timeout,
+            &config.font,
         )
         .await
         {
@@ -131,6 +155,7 @@ pub async fn run(config: &ResolvedConfig) -> Result<Vec<CaptureResult>> {
     Ok(results)
 }
 
+#[allow(clippy::too_many_arguments)]
 async fn capture_scene(
     scene: &SceneConfig,
     output_config: &crate::types::OutputConfig,
@@ -139,6 +164,7 @@ async fn capture_scene(
     output_dir: &Path,
     global_frame_duration_ms: u64,
     seconds: f64,
+    global_font: &FontConfig,
 ) -> Result<CaptureResult> {
     let scene_name = scene.name().to_string();
     let formats = scene
@@ -146,11 +172,31 @@ async fn capture_scene(
         .as_ref()
         .unwrap_or(&output_config.formats);
 
-    let mut backend = build_backend(scene, global_viewport, server, global_frame_duration_ms);
+    let mut backend = build_backend(scene, global_viewport, server, global_frame_duration_ms, global_font);
     backend.setup().await?;
 
     let capture_fut = async {
         let mut frames = Vec::new();
+
+        // Intro splash for terminal scenes
+        if let SceneConfig::Terminal {
+            intro: Some(ref splash),
+            cols,
+            rows,
+            theme,
+            font,
+            ..
+        } = scene
+        {
+            let splash_frames = render_splash(
+                splash,
+                cols.unwrap_or(80),
+                rows.unwrap_or(24),
+                theme.as_deref().unwrap_or("dracula"),
+                font.as_ref().unwrap_or(global_font),
+            )?;
+            frames.extend(splash_frames);
+        }
 
         // Initial frame for terminal (shows prompt)
         if matches!(scene, SceneConfig::Terminal { .. }) {
@@ -164,6 +210,26 @@ async fn capture_scene(
         // Fallback: at least one frame
         if frames.is_empty() {
             frames.push(backend.snapshot().await?);
+        }
+
+        // Outro splash for terminal scenes
+        if let SceneConfig::Terminal {
+            outro: Some(ref splash),
+            cols,
+            rows,
+            theme,
+            font,
+            ..
+        } = scene
+        {
+            let splash_frames = render_splash(
+                splash,
+                cols.unwrap_or(80),
+                rows.unwrap_or(24),
+                theme.as_deref().unwrap_or("dracula"),
+                font.as_ref().unwrap_or(global_font),
+            )?;
+            frames.extend(splash_frames);
         }
 
         Ok::<_, anyhow::Error>(frames)
@@ -182,6 +248,41 @@ async fn capture_scene(
     let files = write_outputs(&frames, &scene_name, formats, output_dir)?;
 
     Ok(CaptureResult { scene_name, files })
+}
+
+/// Render splash frames from a SplashConfig.
+fn render_splash(
+    splash: &crate::types::SplashConfig,
+    cols: usize,
+    rows: usize,
+    theme: &str,
+    font: &FontConfig,
+) -> Result<Vec<CapturedFrame>> {
+    let opts = teasr_term_render::RenderOptions {
+        theme_name: theme,
+        title: None,
+        font_family: Some(&font.family),
+        font_size: Some(font.size),
+    };
+
+    let png_data = if let Some(ref text) = splash.text {
+        teasr_term_render::splash::render_text_splash(text, cols, rows, splash.center, &opts)?
+    } else if let Some(ref file) = splash.file {
+        let content = std::fs::read(file)
+            .with_context(|| format!("failed to read splash file: {file}"))?;
+        teasr_term_render::splash::render_ansi_splash(&content, cols, rows, splash.center, &opts)?
+    } else if let Some(ref image) = splash.image {
+        let data = std::fs::read(image)
+            .with_context(|| format!("failed to read splash image: {image}"))?;
+        teasr_term_render::splash::render_image_splash(&data, cols, rows, splash.center, &opts)?
+    } else {
+        return Ok(vec![]);
+    };
+
+    Ok(vec![CapturedFrame {
+        png_data,
+        duration_ms: splash.duration,
+    }])
 }
 
 /// Write frames to disk in the requested formats.
