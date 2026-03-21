@@ -11,6 +11,12 @@ inputs:
     description: "Teasr version to download (default: latest)"
     required: false
     default: "latest"
+  scenes:
+    description: "Comma-separated scene names or types to capture (default: all)"
+    required: false
+  args:
+    description: "Additional arguments to pass to teasr showme"
+    required: false
 
 runs:
   using: "composite"
@@ -58,6 +64,18 @@ runs:
       with:
         chrome-version: stable
 
+    - name: Install default font
+      shell: bash
+      run: teasr setup --fonts "Monaspace Nerd Font"
+
     - name: Run teasr
       shell: bash
-      run: teasr showme
+      run: |
+        ARGS="showme"
+        if [ -n "${{ inputs.scenes }}" ]; then
+          ARGS="$ARGS --scenes ${{ inputs.scenes }}"
+        fi
+        if [ -n "${{ inputs.args }}" ]; then
+          ARGS="$ARGS ${{ inputs.args }}"
+        fi
+        teasr $ARGS
