@@ -9,10 +9,24 @@ pub fn frames_to_gif(frames: &[CapturedFrame], gif_path: &Path, config: &GifConf
         anyhow::bail!("no frames to encode");
     }
 
-    // Decode first frame to get dimensions
-    let first_img = image::load_from_memory(&frames[0].png_data).context("failed to decode first frame")?;
-    let first_rgba = first_img.to_rgba8();
-    let (width, height) = first_rgba.dimensions();
+    // Decode all frames and find max dimensions so every frame fits
+    let decoded: Vec<image::RgbaImage> = frames
+        .iter()
+        .enumerate()
+        .map(|(i, f)| {
+            image::load_from_memory(&f.png_data)
+                .with_context(|| format!("failed to decode frame {i}"))
+                .map(|img| img.to_rgba8())
+        })
+        .collect::<Result<_>>()?;
+
+    let mut max_width = 0u32;
+    let mut max_height = 0u32;
+    for img in &decoded {
+        let (w, h) = img.dimensions();
+        max_width = max_width.max(w);
+        max_height = max_height.max(h);
+    }
 
     let repeat = match config.repeat {
         None | Some(0) => gifski::Repeat::Infinite,
@@ -20,8 +34,8 @@ pub fn frames_to_gif(frames: &[CapturedFrame], gif_path: &Path, config: &GifConf
     };
 
     let (collector, writer) = gifski::new(gifski::Settings {
-        width: Some(width),
-        height: Some(height),
+        width: Some(max_width),
+        height: Some(max_height),
         quality: config.quality,
         fast: config.fast,
         repeat,
@@ -36,20 +50,20 @@ pub fn frames_to_gif(frames: &[CapturedFrame], gif_path: &Path, config: &GifConf
     });
 
     let mut timestamp = 0.0_f64;
-    for (i, frame) in frames.iter().enumerate() {
-        let img = image::load_from_memory(&frame.png_data).context("failed to decode frame PNG")?;
-        let rgba = img.to_rgba8();
-        // Resize if dimensions don't match the first frame
-        let rgba = if rgba.dimensions() != (width, height) {
-            image::imageops::resize(&rgba, width, height, image::imageops::FilterType::Lanczos3)
+    for (i, (rgba, frame)) in decoded.iter().zip(frames.iter()).enumerate() {
+        // Pad smaller frames onto a max-size canvas (top-left aligned)
+        let canvas = if rgba.dimensions() != (max_width, max_height) {
+            let mut canvas = image::RgbaImage::new(max_width, max_height);
+            image::imageops::overlay(&mut canvas, rgba, 0, 0);
+            canvas
         } else {
-            rgba
+            rgba.clone()
         };
-        let pixels: Vec<rgb::RGBA8> = rgba
+        let pixels: Vec<rgb::RGBA8> = canvas
             .pixels()
             .map(|p| rgb::RGBA8::new(p[0], p[1], p[2], p[3]))
             .collect();
-        let img_frame = imgref::ImgVec::new(pixels, width as usize, height as usize);
+        let img_frame = imgref::ImgVec::new(pixels, max_width as usize, max_height as usize);
         collector
             .add_frame_rgba(i, img_frame, timestamp)
             .with_context(|| format!("failed to add frame {i}"))?;
