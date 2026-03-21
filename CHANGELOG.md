@@ -1,5 +1,27 @@
 # Changelog
 
+## 0.10.0 (2026-03-21)
+
+### Features
+
+- **cli**: add --scenes filter to showme command ([438aaaa](https://github.com/urmzd/teasr/commit/438aaaae1cd554bd7e5f9308f9ae93b3018e0548))
+- **orchestrator**: use UI module for progress and status ([9ae2491](https://github.com/urmzd/teasr/commit/9ae249187623c18abbc622a64f52a3e6fd706fc3))
+- **setup**: add Monaspace Nerd Font and use UI module ([c1fce25](https://github.com/urmzd/teasr/commit/c1fce25224e541da395cea533b42cd15198d204f))
+- **core**: create UI module for formatted terminal output ([6aea93a](https://github.com/urmzd/teasr/commit/6aea93a2eaefbc86524c37d95fb5a3aacfa4cce9))
+
+### Documentation
+
+- update README and AGENTS with new showcase configuration ([ff536c3](https://github.com/urmzd/teasr/commit/ff536c30fee0adc5b3bb109b4052c6ef2421b328))
+
+### Miscellaneous
+
+- update showcase assets and remove old demo files ([d153ce1](https://github.com/urmzd/teasr/commit/d153ce1af35b2819ba0cb6d6060c95cadd2a95ab))
+- add font setup and scene filtering to GitHub Actions ([5a3d3fb](https://github.com/urmzd/teasr/commit/5a3d3fbda3187e7cfcd561f23155cf4aca6ddf25))
+- **deps**: add crossterm and indicatif for terminal UI ([ac916f0](https://github.com/urmzd/teasr/commit/ac916f012addf10db39a968264822c915c7e6cce))
+
+[Full Changelog](https://github.com/urmzd/teasr/compare/v0.9.0...v0.10.0)
+
+
 ## 0.9.0 (2026-03-21)
 
 ### Features
