@@ -1,5 +1,32 @@
 # Changelog
 
+## 0.9.0 (2026-03-21)
+
+### Features
+
+- **cli**: add setup command for font installation and checking ([48b1726](https://github.com/urmzd/teasr/commit/48b1726b28626c7f9f4d842a1e28335dfd3efd20))
+- **core**: integrate splash screens and custom fonts ([5bb5003](https://github.com/urmzd/teasr/commit/5bb5003c6a454d82ebc670f453e0e24ef873b49f))
+- **capture**: add cwd and font options to terminal backend ([35e2483](https://github.com/urmzd/teasr/commit/35e2483a212cbea6b1a2647790dd3c12d6eb64c9))
+- **render**: make fonts configurable in rendering ([689fe34](https://github.com/urmzd/teasr/commit/689fe344974f7192accf40e112f631ab2591d425))
+- **render**: add splash screen rendering module ([8376616](https://github.com/urmzd/teasr/commit/837661673ab45e2a5bc0021fc45574bb7fd4c3bf))
+- **core**: add font setup and management module ([f01eb50](https://github.com/urmzd/teasr/commit/f01eb507a975021e21b7d720a5493224299ff933))
+- **core**: add font configuration to types system ([ed771c7](https://github.com/urmzd/teasr/commit/ed771c72a123616c39bb6e51200fde3afd7d1174))
+
+### Bug Fixes
+
+- **convert**: handle variable-sized frames in GIF encoding ([5f52af0](https://github.com/urmzd/teasr/commit/5f52af07de151d60bdedd359335e9c0934be416f))
+
+### Documentation
+
+- align docs with actual code and simplify action ([57f69d5](https://github.com/urmzd/teasr/commit/57f69d591d631d4cca70a49647024c9720104e89))
+
+### Miscellaneous
+
+- **deps**: remove embedded fonts and add zip/image dependencies ([5f227bb](https://github.com/urmzd/teasr/commit/5f227bb462553aba34fe92048404fc1c19fa72d7))
+
+[Full Changelog](https://github.com/urmzd/teasr/compare/v0.8.0...v0.9.0)
+
+
 ## 0.8.0 (2026-03-20)
 
 ### Features
