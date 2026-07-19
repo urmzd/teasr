@@ -12,6 +12,7 @@ pub struct WebBackend {
     viewport: ViewportConfig,
     frame_duration: u64,
     full_page: bool,
+    redactions: Option<crate::redact::CompiledRedactions>,
     browser: Option<Box<dyn BrowserEngine>>,
     page: Option<Box<dyn BrowserPage>>,
 }
@@ -22,12 +23,14 @@ impl WebBackend {
         viewport: ViewportConfig,
         frame_duration: u64,
         full_page: bool,
+        redactions: Option<crate::redact::CompiledRedactions>,
     ) -> Self {
         Self {
             url,
             viewport,
             frame_duration,
             full_page,
+            redactions,
             browser: None,
             page: None,
         }
@@ -39,6 +42,66 @@ impl WebBackend {
             .next()
             .is_some_and(|base| base.to_ascii_lowercase().ends_with(".pdf"))
     }
+
+}
+
+/// Overlay a mask element on every configured selector match. Re-run before
+/// each screenshot: it is idempotent (old overlays are removed first) so DOM
+/// changes between frames stay covered.
+async fn apply_selector_masks(
+    page: &dyn crate::browser::BrowserPage,
+    redactions: &crate::redact::CompiledRedactions,
+) {
+    if redactions.selectors.is_empty() {
+        return;
+    }
+    let selectors = serde_json::to_string(&redactions.selectors).unwrap_or_default();
+    // Pixelation is not expressible in CSS; fall back to solid fill so the
+    // content is at least fully hidden rather than partially.
+    let style = match redactions.style {
+        crate::redact::RedactStyle::Blur => {
+            "backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);"
+        }
+        _ => "background:#0f0f0f;",
+    };
+    let js = format!(
+        r#"(() => {{
+            document.querySelectorAll('[data-teasr-mask]').forEach(e => e.remove());
+            for (const sel of {selectors}) {{
+                let matches;
+                try {{ matches = document.querySelectorAll(sel); }} catch {{ continue; }}
+                matches.forEach(el => {{
+                    const r = el.getBoundingClientRect();
+                    if (r.width === 0 || r.height === 0) return;
+                    const d = document.createElement('div');
+                    d.setAttribute('data-teasr-mask', '');
+                    d.style.cssText = 'position:absolute;pointer-events:none;z-index:2147483647;'
+                        + 'left:' + (r.left + window.scrollX) + 'px;'
+                        + 'top:' + (r.top + window.scrollY) + 'px;'
+                        + 'width:' + r.width + 'px;height:' + r.height + 'px;{style}';
+                    document.body.appendChild(d);
+                }});
+            }}
+        }})()"#
+    );
+    page.execute(&js).await;
+}
+
+async fn capture_frame(
+    page: &dyn crate::browser::BrowserPage,
+    redactions: Option<&crate::redact::CompiledRedactions>,
+    full_page: bool,
+) -> Result<Vec<u8>> {
+    if let Some(redactions) = redactions {
+        apply_selector_masks(page, redactions).await;
+    }
+    let mut png_data = page.screenshot(full_page).await?;
+    if let Some(redactions) = redactions {
+        if redactions.has_regions() {
+            png_data = redactions.apply_regions_png(&png_data)?;
+        }
+    }
+    Ok(png_data)
 }
 
 #[async_trait::async_trait]
@@ -104,7 +167,8 @@ impl CaptureBackend for WebBackend {
                 Ok(vec![])
             }
             Interaction::Snapshot { .. } => {
-                let png_data = page.screenshot(self.full_page).await?;
+                let png_data =
+                    capture_frame(&**page, self.redactions.as_ref(), self.full_page).await?;
                 Ok(vec![CapturedFrame {
                     png_data,
                     duration_ms: self.frame_duration,
@@ -133,7 +197,7 @@ impl CaptureBackend for WebBackend {
 
     async fn snapshot(&mut self) -> Result<CapturedFrame> {
         let page = self.page.as_ref().unwrap();
-        let png_data = page.screenshot(self.full_page).await?;
+        let png_data = capture_frame(&**page, self.redactions.as_ref(), self.full_page).await?;
         Ok(CapturedFrame {
             png_data,
             duration_ms: self.frame_duration,

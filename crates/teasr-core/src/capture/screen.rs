@@ -15,6 +15,7 @@ pub struct ScreenBackend {
     delay: Option<u64>,
     title: Option<String>,
     theme: String,
+    redactions: Option<crate::redact::CompiledRedactions>,
     /// PID of the window matched after setup, so we can kill it on teardown.
     captured_pid: Option<u32>,
 }
@@ -30,6 +31,7 @@ impl ScreenBackend {
         delay: Option<u64>,
         title: Option<String>,
         theme: String,
+        redactions: Option<crate::redact::CompiledRedactions>,
     ) -> Self {
         Self {
             display,
@@ -40,6 +42,7 @@ impl ScreenBackend {
             delay,
             title,
             theme,
+            redactions,
             captured_pid: None,
         }
     }
@@ -55,15 +58,22 @@ impl ScreenBackend {
             capture_monitor(self.display)?
         };
 
-        if let Some(ref r) = self.region {
+        let mut img = if let Some(ref r) = self.region {
             let sub = image::DynamicImage::ImageRgba8(img).crop_imm(r.x, r.y, r.width, r.height);
-            Ok(match sub {
+            match sub {
                 image::DynamicImage::ImageRgba8(img) => img,
                 other => other.to_rgba8(),
-            })
+            }
         } else {
-            Ok(img)
+            img
+        };
+
+        // Redact on the raw capture, before chrome framing re-renders it —
+        // coordinates are relative to the (possibly cropped) capture.
+        if let Some(ref redactions) = self.redactions {
+            redactions.apply_regions_image(&mut img);
         }
+        Ok(img)
     }
 
     fn capture_png_bytes(&self) -> Result<Vec<u8>> {

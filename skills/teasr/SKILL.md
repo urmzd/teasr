@@ -95,6 +95,30 @@ theme = "dark"
 ### Screen
 Captures a display or region using native screen capture.
 
+**Warning:** screen captures record everything visible on the display, which may include PII (notifications, emails, other windows). Review the output before publishing; prefer a `window` or `region` capture over a full display, and configure `[redact]` to hide known-sensitive content.
+
+## PII Redaction
+
+Global `[redact]` applies to all scenes; `[scenes.redact]` extends it per scene.
+
+```toml
+[redact]
+patterns = ["email", "secrets"]   # built-ins; "secrets" = all API-token patterns
+username = true                   # mask $USER, hostname, home-dir paths
+
+[scenes.redact]
+selectors = [".user-email"]       # web: overlay-mask matching elements
+
+[[scenes.redact.regions]]         # any scene: hide a pixel rectangle
+x = 840
+y = 12
+width = 220
+height = 32
+style = "pixelate"                # "block" (default) | "blur" | "pixelate"
+```
+
+Terminal scenes mask matched text before rendering (custom regexes via `custom`, exact strings via `literals`). Secrets typed on camera still leak in intermediate frames — type them in `hidden = true` steps and let redaction cover program output.
+
 ```toml
 [[scenes]]
 type = "screen"
