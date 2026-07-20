@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.21.0 (2026-07-20)
+
+### Features
+
+- **core**: add PII redaction for captured output (#16) ([39c280a](https://github.com/urmzd/teasr/commit/39c280a5288be99618eb6b101167c307c9c16be4))
+
+### Misc
+
+- bump GitHub Actions to Node 24 majors and switch app token to client-id ([2277f14](https://github.com/urmzd/teasr/commit/2277f149bde3cf056795628b62b933a008ebea82))
+
+[Full Changelog](https://github.com/urmzd/teasr/compare/v0.20.1...v0.21.0)
+
+
 ## 0.20.1 (2026-05-04)
 
 ### Bug Fixes
