@@ -24,8 +24,13 @@ fn build_backend(
     server: Option<&crate::types::ServerConfig>,
     global_frame_duration_ms: u64,
     global_font: &FontConfig,
+    global_redact: Option<&crate::redact::RedactConfig>,
 ) -> Result<(Box<dyn CaptureBackend>, Option<NamedTempFile>)> {
     let default_fd = global_frame_duration_ms;
+    let redactions = crate::redact::RedactConfig::merged(global_redact, scene.redact())
+        .map(|cfg| crate::redact::CompiledRedactions::compile(&cfg))
+        .transpose()
+        .with_context(|| format!("invalid redact config for scene '{}'", scene.name()))?;
     let result = match scene {
         SceneConfig::Terminal {
             theme,
@@ -50,6 +55,7 @@ fn build_backend(
                     command.clone(),
                     Some(effective_font.family.clone()),
                     Some(effective_font.size),
+                    redactions,
                 ));
             (backend, None)
         }
@@ -81,6 +87,7 @@ fn build_backend(
                 vp,
                 frame_duration.unwrap_or(default_fd),
                 *full_page,
+                redactions,
             ));
             (backend, tmp_file)
         }
@@ -104,6 +111,7 @@ fn build_backend(
                 *delay,
                 title.clone(),
                 theme.clone(),
+                redactions,
             ));
             (backend, None)
         }
@@ -248,6 +256,7 @@ pub async fn run(config: &ResolvedConfig) -> Result<Vec<CaptureResult>> {
             config.scene_timeout,
             config.outro_hold_ms,
             &config.font,
+            config.redact.as_ref(),
             &pb,
         )
         .await
@@ -295,6 +304,7 @@ async fn capture_scene(
     seconds: f64,
     outro_hold_ms: u64,
     global_font: &FontConfig,
+    global_redact: Option<&crate::redact::RedactConfig>,
     pb: &indicatif::ProgressBar,
 ) -> Result<CaptureResult> {
     let scene_name = scene.name().to_string();
@@ -306,6 +316,7 @@ async fn capture_scene(
         server,
         global_frame_duration_ms,
         global_font,
+        global_redact,
     )?;
     pb.set_message(format!("{scene_name}: setting up"));
     backend.setup().await?;

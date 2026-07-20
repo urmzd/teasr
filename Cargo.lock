@@ -3425,6 +3425,7 @@ dependencies = [
  "libc",
  "nix 0.29.0",
  "portable-pty",
+ "regex",
  "reqwest 0.12.28",
  "resvg",
  "rgb",

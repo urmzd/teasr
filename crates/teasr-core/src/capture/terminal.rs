@@ -26,6 +26,7 @@ pub struct TerminalBackend {
     child: Option<Box<dyn portable_pty::Child + Send>>,
     last_grid: Option<crate::term_render::CellGrid>,
     last_png: Option<Vec<u8>>,
+    redactions: Option<crate::redact::CompiledRedactions>,
 }
 
 impl TerminalBackend {
@@ -40,6 +41,7 @@ impl TerminalBackend {
         command: Option<String>,
         font_family: Option<String>,
         font_size: Option<f64>,
+        redactions: Option<crate::redact::CompiledRedactions>,
     ) -> Self {
         Self {
             cols,
@@ -58,6 +60,7 @@ impl TerminalBackend {
             child: None,
             last_grid: None,
             last_png: None,
+            redactions,
         }
     }
 
@@ -90,6 +93,12 @@ impl TerminalBackend {
             }
         }
 
+        // Redact before the change-detection compare so masked grids cache
+        // correctly and unredacted text never reaches the renderer.
+        if let Some(ref redactions) = self.redactions {
+            redactions.redact_grid(&mut grid);
+        }
+
         // Skip re-rendering if the grid hasn't changed
         if let Some(ref last) = self.last_grid {
             if *last == grid {
@@ -103,7 +112,12 @@ impl TerminalBackend {
             font_family: self.font_family.as_deref(),
             font_size: self.font_size,
         };
-        let png = crate::term_render::render_grid_to_png(&grid, &opts)?;
+        let mut png = crate::term_render::render_grid_to_png(&grid, &opts)?;
+        if let Some(ref redactions) = self.redactions {
+            if redactions.has_regions() {
+                png = redactions.apply_regions_png(&png)?;
+            }
+        }
         self.last_grid = Some(grid);
         self.last_png = Some(png.clone());
         Ok(png)

@@ -244,6 +244,7 @@ type = "snapshot"
 | `frame_duration` | integer | `100` | Milliseconds per frame in GIF output |
 | `page` | integer | `1` | PDF page to capture (only applies when `uri` is a PDF) |
 | `theme` | string | `"light"` | Markdown theme: `"light"` or `"dark"` (Markdown only) |
+| `redact` | table | — | PII redaction overrides for this scene (see [`[redact]`](#redact)) |
 | `flavor` | string | `"github"` | Markdown flavor: `"github"`, `"commonmark"`, `"custom"` (Markdown only) |
 | `stylesheet` | string | — | Path to a custom CSS file appended after the default styles (Markdown only) |
 | `template` | string | — | Path to a full HTML template with `{{content}}` placeholder; overrides the default template (Markdown only) |
@@ -297,12 +298,16 @@ duration = 2000
 | `interactions` | array | `[]` | Sequence of interactions |
 | `frame_duration` | integer | `100` | Milliseconds per frame in GIF output |
 | `formats` | array | `output.formats` | Per-scene format override |
+| `redact` | table | — | PII redaction overrides for this scene (see [`[redact]`](#redact)) |
 
 **Supported interactions:** `type`, `key`, `wait`, `snapshot`
 
 ### Screen
 
 Captures a display, window, or region using native screen capture (xcap). Screenshots are automatically wrapped in macOS-style window chrome (matching terminal output). Supports multi-frame GIF output when multiple `snapshot` + `wait` interactions are configured.
+
+> [!WARNING]
+> Screen captures record whatever is visible on your display — notifications, browser tabs, menu bar items, and other windows may contain personal information (emails, names, tokens, messages). Always review the output before publishing it. Prefer capturing a specific `window` or `region` over a full display to limit exposure, and use [`[redact]`](#redact) to hide known-sensitive areas.
 
 ```toml
 [[scenes]]
@@ -340,6 +345,7 @@ type = "snapshot"
 | `title` | string | `"Screen Capture"` | Title shown in chrome frame title bar |
 | `theme` | string | `"dracula"` | Chrome frame theme: `"dracula"` or `"monokai"` |
 | `formats` | array | `output.formats` | Per-scene format override |
+| `redact` | table | — | PII redaction overrides for this scene (see [`[redact]`](#redact)) |
 
 **Supported interactions:** `snapshot`, `wait`
 
@@ -355,6 +361,50 @@ command = "npm run dev"
 url = "http://localhost:3000"
 timeout = 10000          # ms to wait for server to be ready (default: 10000)
 ```
+
+### `[redact]`
+
+Optional. Hides PII and secrets in captured output. Configure globally with `[redact]` (applies to every scene) and/or per scene with `[scenes.redact]` — scene lists extend the global lists, scene scalars override global ones.
+
+```toml
+[redact]
+patterns = ["email", "secrets"]   # built-in pattern names (see table below)
+custom = ['acme-[0-9a-f]{16}']    # extra regexes (single-quote to avoid TOML escapes)
+literals = ["internal-host"]      # exact strings to mask
+username = true                   # mask $USER, the hostname, and home-directory paths
+mask = "•"                        # replacement character (default: "•")
+style = "block"                   # default region/selector style: "block", "blur", "pixelate"
+
+[[scenes]]
+type = "web"
+uri = "/dashboard"
+
+[scenes.redact]
+selectors = [".user-email", "#avatar"]   # CSS selectors masked with page overlays (web only)
+
+[[scenes.redact.regions]]                # pixel rectangles hidden in every frame (any scene type)
+x = 840
+y = 12
+width = 220
+height = 32
+style = "pixelate"                       # optional per-region override
+```
+
+How each mechanism applies:
+
+| Mechanism | Scene types | How it works |
+|---|---|---|
+| `patterns` / `custom` / `literals` / `username` | terminal | Matched text is replaced character-for-character with `mask` on the terminal grid *before* rendering — layout and colors are untouched, and tokens that wrap across lines are still caught. |
+| `selectors` | web | Each matching element is covered with an overlay before every screenshot (solid fill, or backdrop blur when `style = "blur"`; `pixelate` falls back to solid). Works with `full_page` and GIFs. |
+| `regions` | all | The rectangle is blocked, blurred, or pixelated in every captured frame. For screen scenes this happens on the raw capture (before window chrome), with coordinates relative to the captured/cropped area. |
+
+**Built-in patterns:** `email`, `ipv4`, `ipv6`, `ssn`, `credit-card`, `phone`, `home-path`, and the token patterns `aws-key`, `github-token`, `slack-token`, `google-api-key`, `stripe-key`, `openai-key`, `anthropic-key`, `npm-token`, `jwt`, `private-key`, `bearer-token`. The name `secrets` expands to all of the token patterns at once.
+
+**Limitations — still review before publishing:**
+
+- Pattern matching needs the whole token visible. A secret *typed on camera* leaks in intermediate frames (each keystroke shows a partial token no pattern can match) and its shell echo can scroll apart. Type secrets in `hidden = true` steps instead, and let redaction handle program *output*.
+- Terminal patterns see text; web and screen frames are pixels, so those modes rely on `selectors` and `regions` — they hide what you tell them to, not what they detect.
+- `blur` leaves recognizable shapes; prefer `block` (the default) for anything genuinely secret.
 
 ### `[output]`
 

@@ -188,6 +188,8 @@ pub enum SceneConfig {
         stylesheet: Option<String>,
         /// Path to a full HTML template with `{{content}}` placeholder (Markdown only).
         template: Option<String>,
+        /// PII redaction overrides for this scene (merged over global `[redact]`).
+        redact: Option<crate::redact::RedactConfig>,
     },
     Screen {
         name: Option<String>,
@@ -203,6 +205,8 @@ pub enum SceneConfig {
         #[serde(default)]
         interactions: Vec<InteractionStep>,
         frame_duration: Option<u64>,
+        /// PII redaction overrides for this scene (merged over global `[redact]`).
+        redact: Option<crate::redact::RedactConfig>,
     },
     Terminal {
         name: Option<String>,
@@ -221,6 +225,8 @@ pub enum SceneConfig {
         #[serde(default)]
         interactions: Vec<InteractionStep>,
         frame_duration: Option<u64>,
+        /// PII redaction overrides for this scene (merged over global `[redact]`).
+        redact: Option<crate::redact::RedactConfig>,
     },
 }
 
@@ -317,6 +323,14 @@ impl SceneConfig {
             SceneConfig::Terminal { interactions, .. } => interactions,
         }
     }
+
+    pub fn redact(&self) -> Option<&crate::redact::RedactConfig> {
+        match self {
+            SceneConfig::Web { redact, .. } => redact.as_ref(),
+            SceneConfig::Screen { redact, .. } => redact.as_ref(),
+            SceneConfig::Terminal { redact, .. } => redact.as_ref(),
+        }
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -376,6 +390,8 @@ pub struct TeaseConfig {
     /// Minimum hold time (ms) for the final frame of every scene before the
     /// GIF loops, so viewers can read the result. Set to 0 to disable.
     pub outro_hold_ms: Option<u64>,
+    /// Global PII redaction applied to every scene (scenes can extend it).
+    pub redact: Option<crate::redact::RedactConfig>,
 }
 
 /// Fully resolved config with defaults applied.
@@ -394,6 +410,8 @@ pub struct ResolvedConfig {
     pub scene_timeout: f64,
     /// Minimum hold time (ms) for the final frame of every scene (default: 1500).
     pub outro_hold_ms: u64,
+    /// Global PII redaction applied to every scene (scenes can extend it).
+    pub redact: Option<crate::redact::RedactConfig>,
 }
 
 impl TeaseConfig {
@@ -408,6 +426,7 @@ impl TeaseConfig {
             seconds: self.seconds.unwrap_or(2.5),
             scene_timeout: self.scene_timeout.unwrap_or(60.0),
             outro_hold_ms: self.outro_hold_ms.unwrap_or(1500),
+            redact: self.redact,
         }
     }
 }
