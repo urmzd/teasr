@@ -3403,7 +3403,7 @@ checksum = "df7f62577c25e07834649fc3b39fafdc597c0a3527dc1c60129201ccfcbaa50c"
 
 [[package]]
 name = "teasr"
-version = "0.21.0"
+version = "0.22.0"
 dependencies = [
  "anyhow",
  "clap",
@@ -3419,7 +3419,7 @@ dependencies = [
 
 [[package]]
 name = "teasr-core"
-version = "0.21.0"
+version = "0.22.0"
 dependencies = [
  "anstyle-parse 0.2.7",
  "anyhow",

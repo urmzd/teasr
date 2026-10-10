@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.22.0 (2026-10-10)
+
+### Features
+
+- **cli**: add repeatable --scene flag and reject unmatched names (#20) ([44c1a55](https://github.com/urmzd/teasr/commit/44c1a559a194529af551784aa0eece61739d4142))
+
+### Misc
+
+- upgrade urmzd/sr action to v9 (#18) ([5b88d5f](https://github.com/urmzd/teasr/commit/5b88d5f67e5a12fdf36a9362ba0de48519bc080b))
+
+[Full Changelog](https://github.com/urmzd/teasr/compare/v0.21.0...v0.22.0)
+
+
 ## 0.21.0 (2026-07-20)
 
 ### Features
