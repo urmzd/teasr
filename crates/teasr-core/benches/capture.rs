@@ -37,8 +37,18 @@ async fn run_terminal_scene(text: &str) -> BenchResult {
     let cpu_start = cpu_time();
     let wall_start = Instant::now();
 
-    let mut backend =
-        TerminalBackend::new(80, Some(24), "dracula", None, 42, None, None, None, None, None);
+    let mut backend = TerminalBackend::new(
+        80,
+        Some(24),
+        "dracula",
+        None,
+        42,
+        None,
+        None,
+        None,
+        None,
+        None,
+    );
     backend.setup().await.expect("setup failed");
 
     let mut frames: Vec<CapturedFrame> = Vec::new();

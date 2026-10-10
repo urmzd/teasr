@@ -3,6 +3,7 @@ mod self_update;
 use anyhow::{Context, Result};
 use clap::{Parser, Subcommand};
 use std::path::PathBuf;
+use teasr_core::types::SceneConfig;
 
 #[derive(Parser, Debug)]
 #[command(
@@ -66,8 +67,13 @@ enum Command {
         #[arg(long)]
         scene_timeout: Option<f64>,
 
-        /// Only run scenes matching these names (comma-separated)
-        #[arg(long, value_delimiter = ',')]
+        /// Only run scenes matching these names or types (repeatable, or comma-separated)
+        #[arg(
+            long = "scene",
+            visible_alias = "scenes",
+            value_name = "NAME",
+            value_delimiter = ','
+        )]
         scenes: Option<Vec<String>>,
     },
 }
@@ -172,6 +178,30 @@ async fn main() -> Result<()> {
     }
 }
 
+fn scene_matches(scene: &SceneConfig, filter: &str) -> bool {
+    scene.name().eq_ignore_ascii_case(filter) || scene.scene_type().eq_ignore_ascii_case(filter)
+}
+
+/// Keep only the scenes selected by `filter`. Every filter entry must match
+/// at least one scene, so a typo fails loudly instead of silently running less.
+fn filter_scenes(scenes: &mut Vec<SceneConfig>, filter: &[String]) -> Result<()> {
+    let unmatched: Vec<&str> = filter
+        .iter()
+        .filter(|f| !scenes.iter().any(|s| scene_matches(s, f)))
+        .map(String::as_str)
+        .collect();
+    if !unmatched.is_empty() {
+        let available: Vec<&str> = scenes.iter().map(|s| s.name()).collect();
+        anyhow::bail!(
+            "no scene matched: {} (available: {})",
+            unmatched.join(", "),
+            available.join(", ")
+        );
+    }
+    scenes.retain(|s| filter.iter().any(|f| scene_matches(s, f)));
+    Ok(())
+}
+
 async fn run(
     config: Option<PathBuf>,
     output: Option<String>,
@@ -209,14 +239,7 @@ async fn run(
     }
 
     if let Some(ref filter) = scenes {
-        config.scenes.retain(|s| {
-            filter
-                .iter()
-                .any(|f| s.name().eq_ignore_ascii_case(f) || s.scene_type().eq_ignore_ascii_case(f))
-        });
-        if config.scenes.is_empty() {
-            anyhow::bail!("no scenes matched filter: {}", filter.join(", "));
-        }
+        filter_scenes(&mut config.scenes, filter)?;
     }
 
     if let Some(formats) = &formats {
@@ -241,4 +264,65 @@ async fn run(
     }
 
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn scenes() -> Vec<SceneConfig> {
+        serde_json::from_value(serde_json::json!([
+            { "type": "terminal", "name": "demo", "command": "true" },
+            { "type": "terminal", "name": "cli-help", "command": "true" },
+            { "type": "web", "name": "site", "uri": "https://example.com" },
+        ]))
+        .unwrap()
+    }
+
+    fn names(scenes: &[SceneConfig]) -> Vec<&str> {
+        scenes.iter().map(|s| s.name()).collect()
+    }
+
+    fn filter(names: &[&str]) -> Vec<String> {
+        names.iter().map(|s| s.to_string()).collect()
+    }
+
+    #[test]
+    fn filter_keeps_only_named_scenes_in_config_order() {
+        let mut s = scenes();
+        filter_scenes(&mut s, &filter(&["site", "DEMO"])).unwrap();
+        assert_eq!(names(&s), ["demo", "site"]);
+    }
+
+    #[test]
+    fn filter_matches_scene_type() {
+        let mut s = scenes();
+        filter_scenes(&mut s, &filter(&["terminal"])).unwrap();
+        assert_eq!(names(&s), ["demo", "cli-help"]);
+    }
+
+    #[test]
+    fn filter_errors_when_any_name_matches_nothing() {
+        let mut s = scenes();
+        let err = filter_scenes(&mut s, &filter(&["demo", "typo"])).unwrap_err();
+        assert_eq!(
+            err.to_string(),
+            "no scene matched: typo (available: demo, cli-help, site)"
+        );
+        assert_eq!(s.len(), 3, "scenes are untouched on error");
+    }
+
+    #[test]
+    fn scene_flag_is_repeatable_and_keeps_scenes_alias() {
+        use clap::Parser;
+        for args in [
+            vec!["teasr", "run", "--scene", "a", "--scene", "b"],
+            vec!["teasr", "run", "--scenes", "a,b"],
+        ] {
+            let Some(Command::Run { scenes, .. }) = Cli::parse_from(args).command else {
+                panic!("expected run");
+            };
+            assert_eq!(scenes.unwrap(), ["a", "b"]);
+        }
+    }
 }

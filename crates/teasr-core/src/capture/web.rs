@@ -42,7 +42,6 @@ impl WebBackend {
             .next()
             .is_some_and(|base| base.to_ascii_lowercase().ends_with(".pdf"))
     }
-
 }
 
 /// Overlay a mask element on every configured selector match. Re-run before

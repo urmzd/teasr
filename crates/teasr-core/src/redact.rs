@@ -70,7 +70,10 @@ pub struct RedactConfig {
 impl RedactConfig {
     /// Merge a scene-level config over a global one: lists concatenate
     /// (global first), scalars take the scene value when set.
-    pub fn merged(global: Option<&RedactConfig>, scene: Option<&RedactConfig>) -> Option<RedactConfig> {
+    pub fn merged(
+        global: Option<&RedactConfig>,
+        scene: Option<&RedactConfig>,
+    ) -> Option<RedactConfig> {
         match (global, scene) {
             (None, None) => None,
             (Some(g), None) => Some(g.clone()),
@@ -106,7 +109,9 @@ fn builtin_pattern(name: &str) -> Option<&'static str> {
         "credit-card" => r"\b\d{4}[ -]?\d{4}[ -]?\d{4}[ -]?\d{4}\b",
         "phone" => r"\+?\d{1,3}[ .-]?\(?\d{3}\)?[ .-]?\d{3}[ .-]?\d{4}\b",
         "aws-key" => r"\b(?:AKIA|ASIA)[0-9A-Z]{16}\b",
-        "github-token" => r"\b(?:ghp|gho|ghu|ghs|ghr)_[A-Za-z0-9]{36}\b|\bgithub_pat_[A-Za-z0-9_]{22,}\b",
+        "github-token" => {
+            r"\b(?:ghp|gho|ghu|ghs|ghr)_[A-Za-z0-9]{36}\b|\bgithub_pat_[A-Za-z0-9_]{22,}\b"
+        }
         "slack-token" => r"\bxox[baprs]-[A-Za-z0-9-]{10,}\b",
         "google-api-key" => r"\bAIza[0-9A-Za-z_-]{35}\b",
         "stripe-key" => r"\b[sr]k_live_[A-Za-z0-9]{20,}\b",
@@ -192,9 +197,7 @@ impl CompiledRedactions {
 
         let regexes = sources
             .iter()
-            .map(|src| {
-                Regex::new(src).with_context(|| format!("invalid redact regex: {src}"))
-            })
+            .map(|src| Regex::new(src).with_context(|| format!("invalid redact regex: {src}")))
             .collect::<Result<Vec<_>>>()?;
 
         Ok(Self {
@@ -327,8 +330,10 @@ fn apply_style(img: &mut RgbaImage, rect: &Region, style: RedactStyle) {
             let sub = image::imageops::crop_imm(img, x, y, w, h).to_image();
             let block = 12u32;
             let (dw, dh) = ((w / block).max(1), (h / block).max(1));
-            let small = image::imageops::resize(&sub, dw, dh, image::imageops::FilterType::Triangle);
-            let mosaic = image::imageops::resize(&small, w, h, image::imageops::FilterType::Nearest);
+            let small =
+                image::imageops::resize(&sub, dw, dh, image::imageops::FilterType::Triangle);
+            let mosaic =
+                image::imageops::resize(&small, w, h, image::imageops::FilterType::Nearest);
             image::imageops::replace(img, &mosaic, x as i64, y as i64);
         }
     }

@@ -460,10 +460,13 @@ Options:
       --fps <N>            Frames per second (overrides config)
       --seconds <N>        Target output duration in seconds (overrides config)
       --scene-timeout <N>  Per-scene wall-clock timeout in seconds (overrides config)
+      --scene <NAME>       Only run scenes matching these names or types [aliases: --scenes]
   -h, --help               Print help
 ```
 
 `--formats` accepts comma-separated values: `--formats png,gif,mp4`
+
+`--scene` selects scenes by `name` (or by type: `terminal`, `web`, `screen`). Repeat it or pass a comma-separated list: `--scene cli-help --scene demo` is the same as `--scenes cli-help,demo`. A name that matches no scene is an error, so a typo never silently runs a different set. Use it to re-capture one scene without executing the others, which matters when a terminal scene types real commands into a live shell.
 
 ## Output Formats
 
