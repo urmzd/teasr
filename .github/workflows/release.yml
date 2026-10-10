@@ -97,6 +97,7 @@ jobs:
           path: teasr-${{ matrix.target }}*
 
   release:
+    environment: release
     needs: [ci, build, fsrc]
     runs-on: ubuntu-latest
     permissions:
