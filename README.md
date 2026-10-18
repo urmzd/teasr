@@ -1,7 +1,7 @@
 <p align="center">
   <h1 align="center">teasr</h1>
   <p align="center">
-    Automated project showcase capture — screenshots and GIFs from web apps, desktop, and terminal. Single binary, no runtime dependencies.
+    Automated project showcase capture: screenshots and GIFs from web apps, desktop, and terminal. Single binary, no runtime dependencies.
     <br /><br />
     <a href="https://github.com/urmzd/teasr/releases">Download</a>
     &middot;
@@ -141,7 +141,7 @@ Output files are written to `./showcase/`.
 
 ## Capture Modes
 
-All three capture modes — `terminal`, `web`, `screen` — use a unified `[[scenes.interactions]]` syntax. Every interaction type is accepted by every mode; unsupported interactions are silently skipped (visible with `--verbose`). The `web` scene loads remote URLs, local files (HTML/SVG/PDF), or Markdown files through the same headless-Chrome renderer.
+All three capture modes (`terminal`, `web`, `screen`) use a unified `[[scenes.interactions]]` syntax. Every interaction type is accepted by every mode; unsupported interactions are silently skipped (visible with `--verbose`). The `web` scene loads remote URLs, local files (HTML/SVG/PDF), or Markdown files through the same headless-Chrome renderer.
 
 ### Interaction Types
 
@@ -152,10 +152,10 @@ All three capture modes — `terminal`, `web`, `screen` — use a unified `[[sce
 | `click` | `selector` (CSS selector, optional) | Click an element |
 | `hover` | `selector` (CSS selector, optional) | Hover over an element |
 | `scroll-to` | `selector` (CSS selector, optional) | Scroll an element into view |
-| `wait` | `duration` (ms, default 1000) | Pause. Terminal/screen emit one frame at the end of the pause (`duration_ms = duration`); web emits nothing — follow with `snapshot` to capture post-pause state. |
+| `wait` | `duration` (ms, default 1000) | Pause. Terminal/screen emit one frame at the end of the pause (`duration_ms = duration`); web emits nothing; follow with `snapshot` to capture post-pause state. |
 | `snapshot` | `name` (optional) | Capture the current state as a frame |
 
-Every interaction also accepts a `hidden` flag (default `false`). Hidden interactions execute normally but their frames are excluded from output — useful for setup steps (e.g. typing a command) that should not appear in the final GIF or screenshot.
+Every interaction also accepts a `hidden` flag (default `false`). Hidden interactions execute normally but their frames are excluded from output. This is useful for setup steps (e.g. typing a command) that should not appear in the final GIF or screenshot.
 
 ```toml
 [[scenes.interactions]]
@@ -178,9 +178,9 @@ hidden = true
 
 Loads a URI in headless Chrome (via chromiumoxide). The `uri` field picks what to load:
 
-- `http://` / `https://` — remote URL (a leading `/` joins against `[server].url` if configured)
-- `*.md` / `*.markdown` — Markdown file rendered to styled HTML
-- anything else — local file (HTML, SVG, PDF) loaded via `file://`
+- `http://` / `https://`: remote URL (a leading `/` joins against `[server].url` if configured)
+- `*.md` / `*.markdown`: Markdown file rendered to styled HTML
+- anything else: local file (HTML, SVG, PDF) loaded via `file://`
 
 Requires Chrome or Chromium to be installed.
 
@@ -244,17 +244,17 @@ type = "snapshot"
 | `frame_duration` | integer | `100` | Milliseconds per frame in GIF output |
 | `page` | integer | `1` | PDF page to capture (only applies when `uri` is a PDF) |
 | `theme` | string | `"light"` | Markdown theme: `"light"` or `"dark"` (Markdown only) |
-| `redact` | table | — | PII redaction overrides for this scene (see [`[redact]`](#redact)) |
+| `redact` | table | none | PII redaction overrides for this scene (see [`[redact]`](#redact)) |
 | `flavor` | string | `"github"` | Markdown flavor: `"github"`, `"commonmark"`, `"custom"` (Markdown only) |
-| `stylesheet` | string | — | Path to a custom CSS file appended after the default styles (Markdown only) |
-| `template` | string | — | Path to a full HTML template with `{{content}}` placeholder; overrides the default template (Markdown only) |
+| `stylesheet` | string | none | Path to a custom CSS file appended after the default styles (Markdown only) |
+| `template` | string | none | Path to a full HTML template with `{{content}}` placeholder; overrides the default template (Markdown only) |
 
 **Markdown flavor details:**
 
 | Flavor | Behavior |
 |--------|----------|
-| `github` | GitHub Flavored Markdown — tables, task lists, autolinks, strikethrough, footnotes |
-| `commonmark` | Strict CommonMark — no extensions |
+| `github` | GitHub Flavored Markdown: tables, task lists, autolinks, strikethrough, footnotes |
+| `commonmark` | Strict CommonMark, no extensions |
 | `custom` | GFM extensions enabled; pair with `stylesheet` to apply your own visual style |
 
 **Supported interactions:** `click`, `hover`, `scroll-to`, `wait`, `snapshot`, `type`, `key`
@@ -298,7 +298,7 @@ duration = 2000
 | `interactions` | array | `[]` | Sequence of interactions |
 | `frame_duration` | integer | `100` | Milliseconds per frame in GIF output |
 | `formats` | array | `output.formats` | Per-scene format override |
-| `redact` | table | — | PII redaction overrides for this scene (see [`[redact]`](#redact)) |
+| `redact` | table | none | PII redaction overrides for this scene (see [`[redact]`](#redact)) |
 
 **Supported interactions:** `type`, `key`, `wait`, `snapshot`
 
@@ -307,7 +307,7 @@ duration = 2000
 Captures a display, window, or region using native screen capture (xcap). Screenshots are automatically wrapped in macOS-style window chrome (matching terminal output). Supports multi-frame GIF output when multiple `snapshot` + `wait` interactions are configured.
 
 > [!WARNING]
-> Screen captures record whatever is visible on your display — notifications, browser tabs, menu bar items, and other windows may contain personal information (emails, names, tokens, messages). Always review the output before publishing it. Prefer capturing a specific `window` or `region` over a full display to limit exposure, and use [`[redact]`](#redact) to hide known-sensitive areas.
+> Screen captures record whatever is visible on your display: notifications, browser tabs, menu bar items, and other windows may contain personal information (emails, names, tokens, messages). Always review the output before publishing it. Prefer capturing a specific `window` or `region` over a full display to limit exposure, and use [`[redact]`](#redact) to hide known-sensitive areas.
 
 ```toml
 [[scenes]]
@@ -336,16 +336,16 @@ type = "snapshot"
 |-------|------|---------|-------------|
 | `name` | string | `"screen"` | Output filename base |
 | `display` | integer | primary | Display index (ignored if `window` is set) |
-| `window` | string | — | Window title or app name substring (case-insensitive) |
+| `window` | string | none | Window title or app name substring (case-insensitive) |
 | `region` | object | full display | `{ x, y, width, height }` |
-| `setup` | string | — | Shell command run before capture |
-| `delay` | integer | — | Milliseconds to wait after setup |
+| `setup` | string | none | Shell command run before capture |
+| `delay` | integer | none | Milliseconds to wait after setup |
 | `interactions` | array | `[]` | Sequence of interactions |
 | `frame_duration` | integer | `100` | Milliseconds per frame in GIF output |
 | `title` | string | `"Screen Capture"` | Title shown in chrome frame title bar |
 | `theme` | string | `"dracula"` | Chrome frame theme: `"dracula"` or `"monokai"` |
 | `formats` | array | `output.formats` | Per-scene format override |
-| `redact` | table | — | PII redaction overrides for this scene (see [`[redact]`](#redact)) |
+| `redact` | table | none | PII redaction overrides for this scene (see [`[redact]`](#redact)) |
 
 **Supported interactions:** `snapshot`, `wait`
 
@@ -353,7 +353,7 @@ type = "snapshot"
 
 ### `[server]`
 
-Optional. Starts a process before capture and health-polls it until ready. The process group is killed on exit — no orphaned processes.
+Optional. Starts a process before capture and health-polls it until ready. The process group is killed on exit, so no orphaned processes remain.
 
 ```toml
 [server]
@@ -364,7 +364,7 @@ timeout = 10000          # ms to wait for server to be ready (default: 10000)
 
 ### `[redact]`
 
-Optional. Hides PII and secrets in captured output. Configure globally with `[redact]` (applies to every scene) and/or per scene with `[scenes.redact]` — scene lists extend the global lists, scene scalars override global ones.
+Optional. Hides PII and secrets in captured output. Configure globally with `[redact]` (applies to every scene) and/or per scene with `[scenes.redact]`. Scene lists extend the global lists, scene scalars override global ones.
 
 ```toml
 [redact]
@@ -394,16 +394,16 @@ How each mechanism applies:
 
 | Mechanism | Scene types | How it works |
 |---|---|---|
-| `patterns` / `custom` / `literals` / `username` | terminal | Matched text is replaced character-for-character with `mask` on the terminal grid *before* rendering — layout and colors are untouched, and tokens that wrap across lines are still caught. |
+| `patterns` / `custom` / `literals` / `username` | terminal | Matched text is replaced character-for-character with `mask` on the terminal grid *before* rendering; layout and colors are untouched, and tokens that wrap across lines are still caught. |
 | `selectors` | web | Each matching element is covered with an overlay before every screenshot (solid fill, or backdrop blur when `style = "blur"`; `pixelate` falls back to solid). Works with `full_page` and GIFs. |
 | `regions` | all | The rectangle is blocked, blurred, or pixelated in every captured frame. For screen scenes this happens on the raw capture (before window chrome), with coordinates relative to the captured/cropped area. |
 
 **Built-in patterns:** `email`, `ipv4`, `ipv6`, `ssn`, `credit-card`, `phone`, `home-path`, and the token patterns `aws-key`, `github-token`, `slack-token`, `google-api-key`, `stripe-key`, `openai-key`, `anthropic-key`, `npm-token`, `jwt`, `private-key`, `bearer-token`. The name `secrets` expands to all of the token patterns at once.
 
-**Limitations — still review before publishing:**
+**Limitations (still review before publishing):**
 
 - Pattern matching needs the whole token visible. A secret *typed on camera* leaks in intermediate frames (each keystroke shows a partial token no pattern can match) and its shell echo can scroll apart. Type secrets in `hidden = true` steps instead, and let redaction handle program *output*.
-- Terminal patterns see text; web and screen frames are pixels, so those modes rely on `selectors` and `regions` — they hide what you tell them to, not what they detect.
+- Terminal patterns see text; web and screen frames are pixels, so those modes rely on `selectors` and `regions`. They hide what you tell them to, not what they detect.
 - `blur` leaves recognizable shapes; prefer `block` (the default) for anything genuinely secret.
 
 ### `[output]`
