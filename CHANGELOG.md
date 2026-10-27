@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.22.1 (2026-10-27)
+
+### Bug Fixes
+
+- **release**: build binaries from the bumped version (#22) ([3e8f9e5](https://github.com/urmzd/teasr/commit/3e8f9e512c0f84b73b50d917b768fab3e1d870d9))
+
+### Misc
+
+- **readme**: align with fleet standard (#21) ([822a352](https://github.com/urmzd/teasr/commit/822a3528519f4cb535a250102e4ae8d715b248e0))
+- **release**: read the sr-releaser key from the release environment (#19) ([585b0f7](https://github.com/urmzd/teasr/commit/585b0f7abc4dfe3b443809329f3790a408aeac0b))
+
+[Full Changelog](https://github.com/urmzd/teasr/compare/v0.22.0...v0.22.1)
+
+
 ## 0.22.0 (2026-10-10)
 
 ### Features
