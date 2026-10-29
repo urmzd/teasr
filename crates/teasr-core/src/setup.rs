@@ -120,7 +120,7 @@ fn extract_fonts(zip_bytes: &[u8], dest: &Path) -> Result<()> {
     let mut count = 0;
     for i in 0..archive.len() {
         let mut file = archive.by_index(i).context("failed to read zip entry")?;
-        let name = file.name().to_string();
+        let name = file.name().context("invalid zip entry name")?.to_string();
 
         // Only extract font files, skip directories and non-font files
         let is_font = name.ends_with(".ttf") || name.ends_with(".otf");
