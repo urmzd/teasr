@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.22.2 (2026-10-29)
+
+### Bug Fixes
+
+- **deps**: patch vulnerable dependencies (#23) ([d1f5e33](https://github.com/urmzd/teasr/commit/d1f5e33f3e58270028bdb3f68e127c59c243fb99))
+
+[Full Changelog](https://github.com/urmzd/teasr/compare/v0.22.1...v0.22.2)
+
+
 ## 0.22.1 (2026-10-27)
 
 ### Bug Fixes
