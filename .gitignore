@@ -7,3 +7,8 @@ target/
 
 # Embedding model cache
 .fastembed_cache/
+
+# Repo skills load in Claude Code from .claude/skills (links into skills/)
+!.claude/
+.claude/*
+!.claude/skills/
