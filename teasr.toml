@@ -53,21 +53,6 @@ frame_duration = 80
 
 [[scenes.interactions]]
 type = "type"
-text = "export PATH=/Users/urmzd/github/teasr/.worktrees/showcase-refresh-2/target/release:$PATH"
-hidden = true
-
-[[scenes.interactions]]
-type = "key"
-key = "enter"
-hidden = true
-
-[[scenes.interactions]]
-type = "wait"
-duration = 300
-hidden = true
-
-[[scenes.interactions]]
-type = "type"
 text = "export PS1='$ ' && clear"
 hidden = true
 
