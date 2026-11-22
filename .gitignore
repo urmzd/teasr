@@ -12,3 +12,4 @@ target/
 !.claude/
 .claude/*
 !.claude/skills/
+.worktrees/

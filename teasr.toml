@@ -46,9 +46,25 @@ type = "snapshot"
 type = "terminal"
 name = "cli-help"
 theme = "dracula"
-cols = 90
+cols = 144
+rows = 22
 formats = [{ output_type = "gif" }, { output_type = "png" }]
 frame_duration = 80
+
+[[scenes.interactions]]
+type = "type"
+text = "export PS1='$ ' && clear"
+hidden = true
+
+[[scenes.interactions]]
+type = "key"
+key = "enter"
+hidden = true
+
+[[scenes.interactions]]
+type = "wait"
+duration = 300
+hidden = true
 
 [[scenes.interactions]]
 type = "type"
