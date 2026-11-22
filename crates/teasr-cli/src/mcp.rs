@@ -78,16 +78,7 @@ fn default_true() -> bool {
 
 impl Server {
     pub fn new(opts: Options) -> Result<Self> {
-        let mut allow = HashSet::new();
-        for kind in opts.allow {
-            if !SCENE_TYPES.contains(&kind.as_str()) {
-                anyhow::bail!(
-                    "unknown scene type '{kind}' for --allow (use {})",
-                    SCENE_TYPES.join(", ")
-                );
-            }
-            allow.insert(kind);
-        }
+        let allow = parse_allow(opts.allow)?;
         let root = std::fs::canonicalize(&opts.root)
             .with_context(|| format!("--root is not a directory: {}", opts.root.display()))?;
         std::fs::create_dir_all(&opts.output)
@@ -182,7 +173,38 @@ impl Server {
     /// allowed types, so the schema (and any hash pinned on it) changes with
     /// `--allow`.
     fn tool(&self) -> Value {
-        let allowed = self.allowed();
+        tool_definition(&self.allowed())
+    }
+}
+
+/// Check the `--allow` values.
+fn parse_allow(allow: Vec<String>) -> Result<HashSet<String>> {
+    let mut set = HashSet::new();
+    for kind in allow {
+        if !SCENE_TYPES.contains(&kind.as_str()) {
+            anyhow::bail!(
+                "unknown scene type '{kind}' for --allow (use {})",
+                SCENE_TYPES.join(", ")
+            );
+        }
+        set.insert(kind);
+    }
+    Ok(set)
+}
+
+/// What `tools/list` returns for these `--allow` values. `teasr mcp tools`
+/// prints it, so the schema can be read and pinned without a client.
+pub fn tools_list(allow: Vec<String>) -> Result<Value> {
+    let allow = parse_allow(allow)?;
+    let allowed: Vec<&str> = SCENE_TYPES
+        .into_iter()
+        .filter(|t| allow.contains(*t))
+        .collect();
+    Ok(json!({ "tools": [tool_definition(&allowed)] }))
+}
+
+fn tool_definition(allowed: &[&str]) -> Value {
+    {
         // Built once and repeated inline: some clients reject `$ref` in a
         // tool schema.
         let formats = json!({
@@ -217,6 +239,14 @@ impl Server {
                  server's root directory. PNG results are also returned as images.",
                 allowed.join(", ")
             ),
+            // It writes new files under --output and loads URLs. It changes
+            // nothing else, and a second call writes a second directory.
+            "annotations": {
+                "readOnlyHint": false,
+                "destructiveHint": false,
+                "idempotentHint": false,
+                "openWorldHint": true
+            },
             "inputSchema": {
                 "type": "object",
                 "additionalProperties": false,
@@ -305,7 +335,9 @@ impl Server {
             }
         })
     }
+}
 
+impl Server {
     /// Run the tool. Every failure a caller can cause comes back as a tool
     /// result with `isError`, so the model can read it and try again.
     async fn capture(&self, args: Value) -> Value {
@@ -607,6 +639,39 @@ mod tests {
                 .filter(|t| allow.contains(t))
                 .collect();
             assert_eq!(kinds, &json!(want));
+        }
+    }
+
+    /// Clients pin a tool by the hash of its schema, so a schema change must
+    /// be a deliberate, visible diff. To accept one, run:
+    /// `teasr mcp tools > crates/teasr-cli/tests/golden/mcp-tools.json`
+    #[test]
+    fn the_default_tool_list_matches_the_golden_file() {
+        let golden: Value =
+            serde_json::from_str(include_str!("../tests/golden/mcp-tools.json")).unwrap();
+        let now = tools_list(vec!["web".to_string()]).unwrap();
+        assert_eq!(
+            now, golden,
+            "the capture tool changed; regenerate the golden file if that is intended"
+        );
+    }
+
+    #[test]
+    fn every_tool_has_the_four_annotations() {
+        let list = tools_list(vec!["web".to_string(), "terminal".to_string()]).unwrap();
+        for tool in list["tools"].as_array().unwrap() {
+            for hint in [
+                "readOnlyHint",
+                "destructiveHint",
+                "idempotentHint",
+                "openWorldHint",
+            ] {
+                assert!(
+                    tool["annotations"][hint].is_boolean(),
+                    "{hint} on {}",
+                    tool["name"]
+                );
+            }
         }
     }
 

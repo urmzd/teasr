@@ -1,0 +1,25 @@
+# teasr.toml: screenshots of a web app. Needs Chrome or Chromium.
+# Run it with: teasr run
+
+# Pin the color scheme, or captures follow the machine that runs them.
+color_scheme = "light"
+
+# Remove [server] to capture a site that is already running, and give each
+# scene a full URL in `uri`.
+[server]
+command = "npm run dev"
+url = "http://localhost:3000"
+timeout = 10000
+
+[output]
+dir = "./showcase"
+formats = [{ output_type = "png" }]
+
+[[scenes]]
+type = "web"
+name = "home"
+uri = "/"
+viewport = { width = 1280, height = 720 }
+
+[[scenes.interactions]]
+type = "snapshot"

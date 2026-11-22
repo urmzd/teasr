@@ -1,0 +1,214 @@
+{
+  "tools": [
+    {
+      "annotations": {
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": true,
+        "readOnlyHint": false
+      },
+      "description": "Capture PNG screenshots or animated GIFs from scripted scenes and return the files written. A web scene loads an http(s) URL, or a local HTML, SVG, PDF or Markdown file, in headless Chrome and replays its interactions. Add a `snapshot` interaction for every frame to keep; a scene with no snapshot gets one frame at the end. Allowed scene types: web. Local files must be inside the server's root directory. PNG results are also returned as images.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "color_scheme": {
+            "description": "Emulated prefers-color-scheme for web scenes. Unset, pages follow the server's machine. A scene's own value wins over the call's.",
+            "enum": [
+              "light",
+              "dark"
+            ],
+            "type": "string"
+          },
+          "formats": {
+            "description": "Output file types. Default: png. A scene's own value wins over the call's.",
+            "items": {
+              "enum": [
+                "png",
+                "gif"
+              ],
+              "type": "string"
+            },
+            "minItems": 1,
+            "type": "array"
+          },
+          "inline_images": {
+            "default": true,
+            "description": "Return PNG outputs as images too: at most 6, each at most 2 MiB.",
+            "type": "boolean"
+          },
+          "scenes": {
+            "description": "Scenes to capture, in order. A scene that fails while it runs does not stop the others.",
+            "items": {
+              "properties": {
+                "color_scheme": {
+                  "description": "Emulated prefers-color-scheme for web scenes. Unset, pages follow the server's machine. A scene's own value wins over the call's.",
+                  "enum": [
+                    "light",
+                    "dark"
+                  ],
+                  "type": "string"
+                },
+                "cols": {
+                  "description": "Terminal scenes: width in columns.",
+                  "minimum": 1,
+                  "type": "integer"
+                },
+                "command": {
+                  "description": "Terminal scenes: run this command in the terminal instead of a shell.",
+                  "type": "string"
+                },
+                "formats": {
+                  "description": "Output file types. Default: png. A scene's own value wins over the call's.",
+                  "items": {
+                    "enum": [
+                      "png",
+                      "gif"
+                    ],
+                    "type": "string"
+                  },
+                  "minItems": 1,
+                  "type": "array"
+                },
+                "frame_duration": {
+                  "description": "Milliseconds each frame shows in a GIF.",
+                  "minimum": 1,
+                  "type": "integer"
+                },
+                "full_page": {
+                  "description": "Web scenes: capture the full page height, not only the viewport.",
+                  "type": "boolean"
+                },
+                "interactions": {
+                  "description": "Steps replayed in order.",
+                  "items": {
+                    "properties": {
+                      "duration": {
+                        "description": "wait: milliseconds. Default 1000.",
+                        "minimum": 0,
+                        "type": "integer"
+                      },
+                      "hidden": {
+                        "description": "Run the step but keep its frames out of the output.",
+                        "type": "boolean"
+                      },
+                      "key": {
+                        "description": "key: the key to press, for example enter.",
+                        "type": "string"
+                      },
+                      "selector": {
+                        "description": "click, hover, scroll-to: CSS selector.",
+                        "type": "string"
+                      },
+                      "speed": {
+                        "description": "type: milliseconds per character.",
+                        "minimum": 0,
+                        "type": "integer"
+                      },
+                      "text": {
+                        "description": "type: the text to type.",
+                        "type": "string"
+                      },
+                      "type": {
+                        "enum": [
+                          "snapshot",
+                          "click",
+                          "hover",
+                          "scroll-to",
+                          "wait",
+                          "type",
+                          "key"
+                        ],
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "type"
+                    ],
+                    "type": "object"
+                  },
+                  "type": "array"
+                },
+                "name": {
+                  "description": "Output file name without extension. Unique in the call.",
+                  "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$",
+                  "type": "string"
+                },
+                "page": {
+                  "description": "Web scenes on a PDF: page to capture, from 1.",
+                  "minimum": 1,
+                  "type": "integer"
+                },
+                "rows": {
+                  "description": "Terminal scenes: height in rows.",
+                  "minimum": 1,
+                  "type": "integer"
+                },
+                "theme": {
+                  "description": "Markdown: light or dark. Terminal and screen: dracula or monokai.",
+                  "type": "string"
+                },
+                "type": {
+                  "enum": [
+                    "web"
+                  ],
+                  "type": "string"
+                },
+                "uri": {
+                  "description": "Web scenes, required: an http(s) URL, or a path to a local .html, .svg, .pdf, .md or .markdown file.",
+                  "type": "string"
+                },
+                "viewport": {
+                  "additionalProperties": false,
+                  "description": "Web scenes: browser viewport in CSS pixels.",
+                  "properties": {
+                    "height": {
+                      "default": 720,
+                      "minimum": 1,
+                      "type": "integer"
+                    },
+                    "width": {
+                      "default": 1280,
+                      "minimum": 1,
+                      "type": "integer"
+                    }
+                  },
+                  "type": "object"
+                }
+              },
+              "required": [
+                "type",
+                "name"
+              ],
+              "type": "object"
+            },
+            "minItems": 1,
+            "type": "array"
+          },
+          "viewport": {
+            "additionalProperties": false,
+            "description": "Web scenes: browser viewport in CSS pixels.",
+            "properties": {
+              "height": {
+                "default": 720,
+                "minimum": 1,
+                "type": "integer"
+              },
+              "width": {
+                "default": 1280,
+                "minimum": 1,
+                "type": "integer"
+              }
+            },
+            "type": "object"
+          }
+        },
+        "required": [
+          "scenes"
+        ],
+        "type": "object"
+      },
+      "name": "capture",
+      "title": "Capture screenshots and GIFs"
+    }
+  ]
+}

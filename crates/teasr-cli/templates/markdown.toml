@@ -1,0 +1,16 @@
+# teasr.toml: a Markdown file rendered as an image. Needs Chrome or Chromium.
+# Run it with: teasr run
+
+[output]
+dir = "./showcase"
+formats = [{ output_type = "png" }]
+
+[[scenes]]
+type = "web"
+name = "readme"
+uri = "./README.md"
+theme = "light"
+full_page = true
+
+[[scenes.interactions]]
+type = "snapshot"

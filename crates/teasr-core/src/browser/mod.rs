@@ -98,6 +98,12 @@ pub async fn try_evaluate<T: DeserializeOwned>(page: &dyn BrowserPage, js: &str)
 // Default factory
 // ---------------------------------------------------------------------------
 
+/// The Chrome or Chromium binary web scenes would use, if one is installed.
+/// Honors the `CHROME` environment variable first.
+pub fn find_executable() -> Option<std::path::PathBuf> {
+    chromiumoxide::detection::default_executable(Default::default()).ok()
+}
+
 /// Launch the default browser engine (Chromium).
 pub async fn launch(opts: LaunchOptions) -> Result<Box<dyn BrowserEngine>> {
     Ok(Box::new(chromium::ChromiumEngine::launch(opts).await?))
