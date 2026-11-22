@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.23.0 (2026-11-22)
+
+### Features
+
+- **mcp**: serve a capture tool over MCP (#27) ([8be2a9d](https://github.com/urmzd/teasr/commit/8be2a9df7ccdf94efb182c2fbf0eb72ef2516fd3))
+- emulate a color scheme for web scenes and report runs as JSON (#26) ([9784e54](https://github.com/urmzd/teasr/commit/9784e544ea7d1ef331aa76c6c24dcab496af6164))
+
+### Bug Fixes
+
+- **action**: authenticate the release lookup (#25) ([5783275](https://github.com/urmzd/teasr/commit/57832759d4d8c4c8d8cf783298c938222add1a93))
+
+### Misc
+
+- load the teasr-dev skill in Claude Code from this repo (#24) ([0d24d14](https://github.com/urmzd/teasr/commit/0d24d142d28c8bb71195e8a33ccb28fdef984a7b))
+
+[Full Changelog](https://github.com/urmzd/teasr/compare/v0.22.2...v0.23.0)
+
+
 ## 0.22.2 (2026-10-29)
 
 ### Bug Fixes
