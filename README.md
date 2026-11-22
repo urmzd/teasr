@@ -241,6 +241,7 @@ type = "snapshot"
 | `formats` | array | `output.formats` | Per-scene format override |
 | `interactions` | array | `[]` | Sequence of interactions |
 | `full_page` | boolean | `false` | Capture full page height instead of just the viewport |
+| `color_scheme` | string | top-level `color_scheme` | Emulated `prefers-color-scheme`: `"light"` or `"dark"`. Unset, the page follows the machine that runs the capture |
 | `frame_duration` | integer | `100` | Milliseconds per frame in GIF output |
 | `page` | integer | `1` | PDF page to capture (only applies when `uri` is a PDF) |
 | `theme` | string | `"light"` | Markdown theme: `"light"` or `"dark"` (Markdown only) |
@@ -422,7 +423,11 @@ seconds = 2.5            # default: 2.5. Target output duration in seconds.
 scene_timeout = 60       # default: 60. Per-scene wall-clock timeout in seconds.
 outro_hold_ms = 1500     # default: 1500. Minimum hold time for the final frame of every scene
                          # before the GIF loops, so viewers can read the result. Set to 0 to disable.
+color_scheme = "dark"    # default: unset. Emulated prefers-color-scheme for web scenes:
+                         # "light" or "dark". A scene's own color_scheme wins.
 ```
+
+Without `color_scheme`, headless Chrome reports the color scheme of the machine it runs on, so the same config can produce light captures in CI and dark ones on a laptop. Set it to make captures the same everywhere. To capture both schemes from one config, run it twice: `teasr run --color-scheme light -o showcase/light` and `teasr run --color-scheme dark -o showcase/dark`.
 
 The default `type` interaction speed is `80 ms` per character with ±20 % jitter, which reads as fast human typing rather than a uniform stream. Override per interaction with `speed = <ms>` for a fixed cadence.
 
@@ -442,8 +447,9 @@ Commands:
   help    Print this message or the help of the given subcommand(s)
 
 Options:
-  -h, --help     Print help
-  -V, --version  Print version
+      --format <FORMAT>  Result output: human (on stderr) or json (one document on stdout) [default: human]
+  -h, --help             Print help
+  -V, --version          Print version
 ```
 
 ### `teasr run`
@@ -452,21 +458,60 @@ Options:
 teasr run [OPTIONS]
 
 Options:
-  -c, --config <PATH>      Path to teasr.toml (default: auto-discover)
-  -o, --output <DIR>       Output directory (overrides config)
-      --formats <FMT,...>  Output formats: png, gif, mp4 (overrides config)
-      --verbose            Enable debug logging
-      --timeout <MS>       Global timeout in ms [default: 60000]
-      --fps <N>            Frames per second (overrides config)
-      --seconds <N>        Target output duration in seconds (overrides config)
-      --scene-timeout <N>  Per-scene wall-clock timeout in seconds (overrides config)
-      --scene <NAME>       Only run scenes matching these names or types [aliases: --scenes]
-  -h, --help               Print help
+  -c, --config <PATH>          Path to teasr.toml (default: auto-discover)
+  -o, --output <DIR>           Output directory (overrides config)
+      --formats <FMT,...>      Output formats: png, gif, mp4 (overrides config)
+      --verbose                Enable debug logging
+      --timeout <MS>           Global timeout in ms [default: 60000]
+      --fps <N>                Frames per second (overrides config)
+      --seconds <N>            Target output duration in seconds (overrides config)
+      --scene-timeout <N>      Per-scene wall-clock timeout in seconds (overrides config)
+      --color-scheme <SCHEME>  Emulated prefers-color-scheme for web scenes: light or dark (overrides config)
+      --scene <NAME>           Only run scenes matching these names or types [aliases: --scenes]
+      --format <FORMAT>        Result output: human (on stderr) or json (one document on stdout) [default: human]
+  -h, --help                   Print help
 ```
 
 `--formats` accepts comma-separated values: `--formats png,gif,mp4`
 
 `--scene` selects scenes by `name` (or by type: `terminal`, `web`, `screen`). Repeat it or pass a comma-separated list: `--scene cli-help --scene demo` is the same as `--scenes cli-help,demo`. A name that matches no scene is an error, so a typo never silently runs a different set. Use it to re-capture one scene without executing the others, which matters when a terminal scene types real commands into a live shell.
+
+### JSON report
+
+`--format json` prints one JSON document on stdout when the run ends. Progress and logs stay on stderr. Use it when a script or an agent needs the output paths, or needs to know which scenes failed.
+
+```bash
+teasr run --format json
+```
+
+```json
+{
+  "output_dir": "/work/showcase",
+  "captured": 1,
+  "failed": 1,
+  "scenes": [
+    {
+      "name": "homepage",
+      "type": "web",
+      "status": "ok",
+      "files": ["/work/showcase/homepage.png"],
+      "duration_ms": 1211
+    },
+    {
+      "name": "docs-preview",
+      "type": "web",
+      "status": "failed",
+      "files": [],
+      "error": "file not found: ./docs/preview.html: No such file or directory (os error 2)",
+      "duration_ms": 0
+    }
+  ]
+}
+```
+
+Paths are absolute. `error` is present only on a failed scene. The exit code is `0` when at least one scene was captured and `1` when every scene failed, so read `failed` to detect a partial run. An error that stops the run before any scene starts (a bad config, a server that does not come up) prints no report.
+
+`--format` is not `--formats`: `--formats` picks the capture file types.
 
 ## Output Formats
 

@@ -142,4 +142,49 @@ scenes = []
         let err = load_config(f.path()).unwrap_err();
         assert!(err.to_string().contains("at least one scene"));
     }
+
+    #[test]
+    fn color_scheme_is_read_globally_and_per_scene() {
+        use crate::types::{ColorScheme, SceneConfig};
+        let f = write_temp_config(
+            r#"
+color_scheme = "dark"
+
+[[scenes]]
+type = "web"
+uri = "https://example.com"
+name = "inherits"
+
+[[scenes]]
+type = "web"
+uri = "https://example.com"
+name = "overrides"
+color_scheme = "light"
+"#,
+        );
+        let config = load_config(f.path()).unwrap();
+        assert_eq!(config.color_scheme, Some(ColorScheme::Dark));
+        let schemes: Vec<_> = config
+            .scenes
+            .iter()
+            .map(|s| match s {
+                SceneConfig::Web { color_scheme, .. } => *color_scheme,
+                _ => unreachable!(),
+            })
+            .collect();
+        assert_eq!(schemes, [None, Some(ColorScheme::Light)]);
+    }
+
+    #[test]
+    fn unknown_color_scheme_is_rejected() {
+        let f = write_temp_config(
+            r#"
+[[scenes]]
+type = "web"
+uri = "https://example.com"
+color_scheme = "sepia"
+"#,
+        );
+        assert!(load_config(f.path()).is_err());
+    }
 }

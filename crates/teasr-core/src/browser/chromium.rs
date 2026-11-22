@@ -2,7 +2,9 @@
 
 use anyhow::{Context, Result};
 use chromiumoxide::browser::{Browser, BrowserConfig};
-use chromiumoxide::cdp::browser_protocol::emulation::SetDeviceMetricsOverrideParams;
+use chromiumoxide::cdp::browser_protocol::emulation::{
+    MediaFeature, SetDeviceMetricsOverrideParams, SetEmulatedMediaParams,
+};
 use chromiumoxide::cdp::browser_protocol::input::{
     DispatchMouseEventParams, DispatchMouseEventType,
 };
@@ -84,6 +86,18 @@ impl BrowserEngine for ChromiumEngine {
 impl BrowserPage for ChromiumPage {
     async fn goto(&self, url: &str) -> Result<()> {
         self.inner.goto(url).await.context("navigation failed")?;
+        Ok(())
+    }
+
+    async fn emulate_color_scheme(&self, scheme: crate::types::ColorScheme) -> Result<()> {
+        self.inner
+            .execute(
+                SetEmulatedMediaParams::builder()
+                    .feature(MediaFeature::new("prefers-color-scheme", scheme.as_str()))
+                    .build(),
+            )
+            .await
+            .context("failed to emulate color scheme")?;
         Ok(())
     }
 
