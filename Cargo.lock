@@ -3400,11 +3400,13 @@ name = "teasr"
 version = "0.22.2"
 dependencies = [
  "anyhow",
+ "base64 0.22.1",
  "clap",
  "serde",
  "serde_json",
  "sha2",
  "teasr-core",
+ "tempfile",
  "tokio",
  "tracing",
  "tracing-subscriber",

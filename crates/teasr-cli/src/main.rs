@@ -1,3 +1,7 @@
+// The `capture` tool schema in mcp.rs is one deep `json!` literal.
+#![recursion_limit = "256"]
+
+mod mcp;
 mod self_update;
 
 use anyhow::{Context, Result};
@@ -41,6 +45,29 @@ enum Command {
         /// Check if the configured font is available
         #[arg(long)]
         check: bool,
+    },
+    /// Serve the `capture` tool to an agent over MCP (stdio)
+    Mcp {
+        /// Scene types a caller may run (comma-separated: web,terminal,screen).
+        /// terminal runs shell commands; screen records the display.
+        #[arg(long, value_delimiter = ',', default_value = "web")]
+        allow: Vec<String>,
+
+        /// Local files a web scene loads must be inside this directory
+        #[arg(long, default_value = ".")]
+        root: PathBuf,
+
+        /// Each call writes to a new directory under this one
+        #[arg(short, long, default_value = "./teasr-output")]
+        output: PathBuf,
+
+        /// Time limit for one capture call in milliseconds
+        #[arg(long, default_value = "60000")]
+        timeout: u64,
+
+        /// Enable verbose logging (on stderr)
+        #[arg(long)]
+        verbose: bool,
     },
     /// Self-update teasr to the latest release
     Update,
@@ -187,6 +214,33 @@ async fn main() -> Result<()> {
                     anyhow::bail!("teasr timed out after {}ms", timeout_dur.as_millis());
                 }
             }
+        }
+        Some(Command::Mcp {
+            allow,
+            root,
+            output,
+            timeout,
+            verbose,
+        }) => {
+            let filter = if verbose { "debug" } else { "warn" };
+            tracing_subscriber::fmt()
+                .with_env_filter(
+                    tracing_subscriber::EnvFilter::try_from_default_env()
+                        .unwrap_or_else(|_| filter.into()),
+                )
+                .with_target(false)
+                // stdout is the MCP transport: every log line must go to stderr.
+                .with_writer(std::io::stderr)
+                .init();
+
+            mcp::Server::new(mcp::Options {
+                allow,
+                root,
+                output,
+                timeout: std::time::Duration::from_millis(timeout),
+            })?
+            .serve()
+            .await
         }
         Some(Command::Update) => {
             eprintln!("current version: {}", env!("CARGO_PKG_VERSION"));

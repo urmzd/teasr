@@ -32,6 +32,7 @@ crates/
 ## Development Workflow
 
 - The entry point is `crates/teasr-cli/src/main.rs`
+- `crates/teasr-cli/src/mcp.rs` is the `teasr mcp` server: JSON-RPC on stdio, one `capture` tool. Nothing but protocol messages may go to stdout
 - Config is loaded from `teasr.toml` (auto-discovered walking up from cwd)
 - Web capture requires Chrome/Chromium installed on the system
 - Example config exists at `teasr.toml` in the repo root
