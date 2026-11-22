@@ -9,8 +9,8 @@ use crate::capture;
 use crate::render;
 use crate::server::ManagedServer;
 use crate::types::{
-    CaptureResult, CapturedFrame, FontConfig, MarkdownFlavor, MarkdownTheme, ResolvedConfig,
-    SceneConfig, ViewportConfig,
+    CaptureResult, CapturedFrame, ColorScheme, FontConfig, MarkdownFlavor, MarkdownTheme,
+    ResolvedConfig, RunReport, SceneConfig, SceneReport, SceneStatus, ViewportConfig,
 };
 use crate::ui;
 
@@ -18,9 +18,11 @@ use crate::ui;
 ///
 /// Returns the backend and an optional temp file that must outlive the capture
 /// (used when markdown is rendered to a temporary HTML file).
+#[allow(clippy::too_many_arguments)]
 fn build_backend(
     scene: &SceneConfig,
     global_viewport: &ViewportConfig,
+    global_color_scheme: Option<ColorScheme>,
     server: Option<&crate::types::ServerConfig>,
     global_frame_duration_ms: u64,
     global_font: &FontConfig,
@@ -64,6 +66,7 @@ fn build_backend(
             viewport,
             frame_duration,
             full_page,
+            color_scheme,
             page,
             flavor,
             theme,
@@ -87,6 +90,7 @@ fn build_backend(
                 vp,
                 frame_duration.unwrap_or(default_fd),
                 *full_page,
+                color_scheme.or(global_color_scheme),
                 redactions,
             ));
             (backend, tmp_file)
@@ -204,8 +208,27 @@ fn resolve_web_uri(
     }
 }
 
-/// Run all scenes in order and return capture results.
+/// Run all scenes in order and return the scenes that produced output.
+/// Fails when every scene failed. Use [`run_report`] to see failed scenes too.
 pub async fn run(config: &ResolvedConfig) -> Result<Vec<CaptureResult>> {
+    let report = run_report(config).await?;
+    if report.all_failed() {
+        anyhow::bail!("all scenes failed");
+    }
+    Ok(report
+        .scenes
+        .into_iter()
+        .filter(|s| s.status == SceneStatus::Ok)
+        .map(|s| CaptureResult {
+            scene_name: s.name,
+            files: s.files,
+        })
+        .collect())
+}
+
+/// Run all scenes in order and report every one, failed scenes included.
+/// Only errors that stop the whole run (output dir, fonts, server) are `Err`.
+pub async fn run_report(config: &ResolvedConfig) -> Result<RunReport> {
     let output_dir = PathBuf::from(&config.output.dir);
     std::fs::create_dir_all(&output_dir)
         .with_context(|| format!("failed to create output dir: {}", output_dir.display()))?;
@@ -232,7 +255,7 @@ pub async fn run(config: &ResolvedConfig) -> Result<Vec<CaptureResult>> {
         None => None,
     };
 
-    let mut results = Vec::new();
+    let mut scenes = Vec::new();
 
     for (i, scene) in config.scenes.iter().enumerate() {
         let scene_name = scene.name().to_string();
@@ -250,6 +273,7 @@ pub async fn run(config: &ResolvedConfig) -> Result<Vec<CaptureResult>> {
             scene,
             &config.output,
             &config.viewport,
+            config.color_scheme,
             config.server.as_ref(),
             &output_dir,
             config.frame_duration_ms,
@@ -269,28 +293,52 @@ pub async fn run(config: &ResolvedConfig) -> Result<Vec<CaptureResult>> {
                     elapsed.as_secs_f64()
                 );
                 ui::spinner_done(&pb, Some(&detail));
-                results.push(result);
+                scenes.push(SceneReport {
+                    name: scene_name,
+                    scene_type: scene.scene_type().to_string(),
+                    status: SceneStatus::Ok,
+                    files: result.files,
+                    error: None,
+                    duration_ms: elapsed.as_millis() as u64,
+                });
             }
             Err(e) => {
                 pb.finish_and_clear();
                 ui::error(&format!("scene '{}' failed: {e:#}", scene_name));
+                scenes.push(SceneReport {
+                    name: scene_name,
+                    scene_type: scene.scene_type().to_string(),
+                    status: SceneStatus::Failed,
+                    files: Vec::new(),
+                    error: Some(format!("{e:#}")),
+                    duration_ms: start.elapsed().as_millis() as u64,
+                });
             }
         }
     }
 
-    if results.is_empty() && !config.scenes.is_empty() {
-        anyhow::bail!("all scenes failed");
-    }
+    let captured = scenes
+        .iter()
+        .filter(|s| s.status == SceneStatus::Ok)
+        .count();
+    let report = RunReport {
+        output_dir: config.output.dir.clone(),
+        captured,
+        failed: scenes.len() - captured,
+        scenes,
+    };
 
-    ui::phase_ok(
-        &format!(
-            "{}/{} scenes captured successfully",
-            results.len(),
-            config.scenes.len()
-        ),
-        None,
-    );
-    Ok(results)
+    if !report.all_failed() {
+        ui::phase_ok(
+            &format!(
+                "{}/{} scenes captured successfully",
+                report.captured,
+                report.scenes.len()
+            ),
+            None,
+        );
+    }
+    Ok(report)
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -298,6 +346,7 @@ async fn capture_scene(
     scene: &SceneConfig,
     output_config: &crate::types::OutputConfig,
     global_viewport: &ViewportConfig,
+    global_color_scheme: Option<ColorScheme>,
     server: Option<&crate::types::ServerConfig>,
     output_dir: &Path,
     global_frame_duration_ms: u64,
@@ -313,6 +362,7 @@ async fn capture_scene(
     let (mut backend, _tmp_file) = build_backend(
         scene,
         global_viewport,
+        global_color_scheme,
         server,
         global_frame_duration_ms,
         global_font,

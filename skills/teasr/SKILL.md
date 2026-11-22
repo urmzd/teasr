@@ -151,4 +151,6 @@ timeout = 10000
 | `--fps <N>` | Frames per second (overrides config) |
 | `--seconds <N>` | Target output duration in seconds |
 | `--scene-timeout <N>` | Per-scene wall-clock timeout in seconds |
+| `--color-scheme <SCHEME>` | Emulated `prefers-color-scheme` for web scenes: `light` or `dark`. A scene's own `color_scheme` wins |
+| `--format <human\|json>` | Result output. `json` prints one report on stdout: output dir, per-scene status, absolute file paths, and the error of each failed scene |
 | `--scene <NAME>` | Only run scenes matching these names or types. Repeatable or comma-separated; alias `--scenes`. Errors if a name matches no scene |

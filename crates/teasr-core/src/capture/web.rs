@@ -5,13 +5,14 @@ use crate::backend::CaptureBackend;
 use crate::browser::{self, BrowserEngine, BrowserPage, LaunchOptions};
 use crate::capture::chrome::{install_idle_tracker, page_has_activity};
 use crate::capture::wait_for_idle;
-use crate::types::{CapturedFrame, Interaction, ViewportConfig};
+use crate::types::{CapturedFrame, ColorScheme, Interaction, ViewportConfig};
 
 pub struct WebBackend {
     url: String,
     viewport: ViewportConfig,
     frame_duration: u64,
     full_page: bool,
+    color_scheme: Option<ColorScheme>,
     redactions: Option<crate::redact::CompiledRedactions>,
     browser: Option<Box<dyn BrowserEngine>>,
     page: Option<Box<dyn BrowserPage>>,
@@ -23,6 +24,7 @@ impl WebBackend {
         viewport: ViewportConfig,
         frame_duration: u64,
         full_page: bool,
+        color_scheme: Option<ColorScheme>,
         redactions: Option<crate::redact::CompiledRedactions>,
     ) -> Self {
         Self {
@@ -30,6 +32,7 @@ impl WebBackend {
             viewport,
             frame_duration,
             full_page,
+            color_scheme,
             redactions,
             browser: None,
             page: None,
@@ -117,6 +120,9 @@ impl CaptureBackend for WebBackend {
         let browser = browser::launch(opts).await?;
         let page = browser.new_page("about:blank").await?;
 
+        if let Some(scheme) = self.color_scheme {
+            page.emulate_color_scheme(scheme).await?;
+        }
         page.goto(&self.url).await?;
         install_idle_tracker(&*page).await;
         wait_for_idle(5000, 500, 50, || page_has_activity(&*page)).await;

@@ -3,7 +3,17 @@ mod self_update;
 use anyhow::{Context, Result};
 use clap::{Parser, Subcommand};
 use std::path::PathBuf;
-use teasr_core::types::SceneConfig;
+use teasr_core::types::{ColorScheme, RunReport, SceneConfig, SceneStatus};
+
+/// How a command reports its result.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, clap::ValueEnum)]
+enum ReportFormat {
+    // Styled progress on stderr. Plain comments: a doc comment here would
+    // switch every `--help` to clap's long layout.
+    Human,
+    // One JSON document on stdout.
+    Json,
+}
 
 #[derive(Parser, Debug)]
 #[command(
@@ -12,6 +22,10 @@ use teasr_core::types::SceneConfig;
     version
 )]
 struct Cli {
+    /// Result output: human (on stderr) or json (one document on stdout)
+    #[arg(long, global = true, default_value = "human", value_enum)]
+    format: ReportFormat,
+
     #[command(subcommand)]
     command: Option<Command>,
 }
@@ -67,6 +81,10 @@ enum Command {
         #[arg(long)]
         scene_timeout: Option<f64>,
 
+        /// Emulated prefers-color-scheme for web scenes: light or dark (overrides config)
+        #[arg(long, value_name = "SCHEME")]
+        color_scheme: Option<ColorScheme>,
+
         /// Only run scenes matching these names or types (repeatable, or comma-separated)
         #[arg(
             long = "scene",
@@ -90,6 +108,8 @@ async fn main() -> Result<()> {
                         .unwrap_or_else(|_| "warn".into()),
                 )
                 .with_target(false)
+                // stdout carries only data (the JSON report); logs go to stderr.
+                .with_writer(std::io::stderr)
                 .init();
 
             teasr_core::ui::header("teasr setup");
@@ -127,6 +147,7 @@ async fn main() -> Result<()> {
             fps,
             seconds,
             scene_timeout,
+            color_scheme,
             scenes,
         }) => {
             let filter = if verbose { "debug" } else { "warn" };
@@ -136,6 +157,8 @@ async fn main() -> Result<()> {
                         .unwrap_or_else(|_| filter.into()),
                 )
                 .with_target(false)
+                // stdout carries only data (the JSON report); logs go to stderr.
+                .with_writer(std::io::stderr)
                 .init();
 
             teasr_core::ui::header("teasr run");
@@ -143,7 +166,17 @@ async fn main() -> Result<()> {
             let timeout_dur = std::time::Duration::from_millis(timeout);
             let result = tokio::time::timeout(
                 timeout_dur,
-                run(config, output, formats, fps, seconds, scene_timeout, scenes),
+                run(
+                    cli.format,
+                    config,
+                    output,
+                    formats,
+                    fps,
+                    seconds,
+                    scene_timeout,
+                    color_scheme,
+                    scenes,
+                ),
             )
             .await;
 
@@ -168,7 +201,13 @@ async fn main() -> Result<()> {
             Ok(())
         }
         Some(Command::Version) => {
-            println!("teasr v{}", env!("CARGO_PKG_VERSION"));
+            match cli.format {
+                ReportFormat::Human => println!("teasr v{}", env!("CARGO_PKG_VERSION")),
+                ReportFormat::Json => println!(
+                    "{}",
+                    serde_json::json!({ "version": env!("CARGO_PKG_VERSION") })
+                ),
+            }
             Ok(())
         }
         None => {
@@ -202,13 +241,33 @@ fn filter_scenes(scenes: &mut Vec<SceneConfig>, filter: &[String]) -> Result<()>
     Ok(())
 }
 
+/// Rewrite the report's paths as absolute, so a caller in another working
+/// directory can open them. A path that cannot be resolved is left as written.
+fn absolute_paths(mut report: RunReport) -> RunReport {
+    let abs = |p: &str| {
+        std::fs::canonicalize(p)
+            .map(|a| a.to_string_lossy().into_owned())
+            .unwrap_or_else(|_| p.to_string())
+    };
+    report.output_dir = abs(&report.output_dir);
+    for scene in &mut report.scenes {
+        for file in &mut scene.files {
+            *file = abs(file);
+        }
+    }
+    report
+}
+
+#[allow(clippy::too_many_arguments)]
 async fn run(
+    format: ReportFormat,
     config: Option<PathBuf>,
     output: Option<String>,
     formats: Option<Vec<String>>,
     fps: Option<u32>,
     seconds: Option<f64>,
     scene_timeout: Option<f64>,
+    color_scheme: Option<ColorScheme>,
     scenes: Option<Vec<String>>,
 ) -> Result<()> {
     let config_path = if let Some(path) = &config {
@@ -238,6 +297,10 @@ async fn run(
         config.scene_timeout = t;
     }
 
+    if color_scheme.is_some() {
+        config.color_scheme = color_scheme;
+    }
+
     if let Some(ref filter) = scenes {
         filter_scenes(&mut config.scenes, filter)?;
     }
@@ -255,14 +318,27 @@ async fn run(
         config.output.formats = parsed;
     }
 
-    let results = teasr_core::orchestrator::run(&config).await?;
+    let report = teasr_core::orchestrator::run_report(&config).await?;
 
-    for result in &results {
-        for file in &result.files {
-            teasr_core::ui::phase_ok("wrote", Some(file));
+    match format {
+        ReportFormat::Human => {
+            for scene in report.scenes.iter().filter(|s| s.status == SceneStatus::Ok) {
+                for file in &scene.files {
+                    teasr_core::ui::phase_ok("wrote", Some(file));
+                }
+            }
+        }
+        // Printed before the all-failed error below, so a caller always gets
+        // the per-scene errors as data.
+        ReportFormat::Json => {
+            let report = absolute_paths(report.clone());
+            println!("{}", serde_json::to_string_pretty(&report)?);
         }
     }
 
+    if report.all_failed() {
+        anyhow::bail!("all scenes failed");
+    }
     Ok(())
 }
 
@@ -324,5 +400,64 @@ mod tests {
             };
             assert_eq!(scenes.unwrap(), ["a", "b"]);
         }
+    }
+
+    #[test]
+    fn format_defaults_to_human_and_is_global() {
+        use clap::Parser;
+        assert_eq!(
+            Cli::parse_from(["teasr", "run"]).format,
+            ReportFormat::Human
+        );
+        for args in [
+            ["teasr", "--format", "json", "run"],
+            ["teasr", "run", "--format", "json"],
+        ] {
+            assert_eq!(Cli::parse_from(args).format, ReportFormat::Json);
+        }
+    }
+
+    #[test]
+    fn color_scheme_flag_accepts_only_light_and_dark() {
+        use clap::Parser;
+        let Some(Command::Run { color_scheme, .. }) =
+            Cli::parse_from(["teasr", "run", "--color-scheme", "dark"]).command
+        else {
+            panic!("expected run");
+        };
+        assert_eq!(color_scheme, Some(ColorScheme::Dark));
+        assert!(Cli::try_parse_from(["teasr", "run", "--color-scheme", "sepia"]).is_err());
+    }
+
+    #[test]
+    fn json_report_names_failed_scenes_and_omits_error_on_success() {
+        use teasr_core::types::SceneReport;
+        let scene = |name: &str, status, error: Option<&str>| SceneReport {
+            name: name.to_string(),
+            scene_type: "web".to_string(),
+            status,
+            files: Vec::new(),
+            error: error.map(str::to_string),
+            duration_ms: 5,
+        };
+        let report = RunReport {
+            output_dir: "out".to_string(),
+            captured: 1,
+            failed: 1,
+            scenes: vec![
+                scene("home", SceneStatus::Ok, None),
+                scene("broken", SceneStatus::Failed, Some("file not found")),
+            ],
+        };
+        assert!(!report.all_failed());
+        let json = serde_json::to_value(&report).unwrap();
+        assert_eq!(
+            json["scenes"],
+            serde_json::json!([
+                { "name": "home", "type": "web", "status": "ok", "files": [], "duration_ms": 5 },
+                { "name": "broken", "type": "web", "status": "failed", "files": [],
+                  "error": "file not found", "duration_ms": 5 },
+            ])
+        );
     }
 }

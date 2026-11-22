@@ -54,6 +54,10 @@ pub trait BrowserPage: Send + Sync {
     /// Navigate to a URL and wait for the initial load.
     async fn goto(&self, url: &str) -> Result<()>;
 
+    /// Make `prefers-color-scheme` media queries match `scheme`. Call before
+    /// [`goto`](Self::goto) so the page loads in that scheme.
+    async fn emulate_color_scheme(&self, scheme: crate::types::ColorScheme) -> Result<()>;
+
     /// Evaluate JavaScript and return the raw JSON result.
     async fn evaluate_value(&self, js: &str) -> Result<Value>;
 

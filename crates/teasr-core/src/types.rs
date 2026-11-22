@@ -150,6 +150,37 @@ impl Default for ViewportConfig {
     }
 }
 
+/// The `prefers-color-scheme` value a web scene's page is told the user has.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum ColorScheme {
+    Light,
+    Dark,
+}
+
+impl ColorScheme {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            ColorScheme::Light => "light",
+            ColorScheme::Dark => "dark",
+        }
+    }
+}
+
+impl std::str::FromStr for ColorScheme {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "light" => Ok(ColorScheme::Light),
+            "dark" => Ok(ColorScheme::Dark),
+            other => Err(format!(
+                "unknown color scheme '{other}' (use light or dark)"
+            )),
+        }
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Region {
     pub x: u32,
@@ -175,6 +206,9 @@ pub enum SceneConfig {
         frame_duration: Option<u64>,
         #[serde(default)]
         full_page: bool,
+        /// Emulated `prefers-color-scheme`. Falls back to the top-level
+        /// `color_scheme`; when neither is set the browser default applies.
+        color_scheme: Option<ColorScheme>,
         /// PDF page number, 1-indexed. Only applies when `uri` points to a PDF.
         #[serde(default = "default_page")]
         page: u32,
@@ -379,6 +413,8 @@ pub struct TeaseConfig {
     pub scenes: Vec<SceneConfig>,
     pub server: Option<ServerConfig>,
     pub viewport: Option<ViewportConfig>,
+    /// Default emulated `prefers-color-scheme` for web scenes.
+    pub color_scheme: Option<ColorScheme>,
     pub output: Option<OutputConfig>,
     pub font: Option<FontConfig>,
     /// Frames per second (converted to frame_duration_ms = 1000/fps).
@@ -400,6 +436,8 @@ pub struct ResolvedConfig {
     pub scenes: Vec<SceneConfig>,
     pub server: Option<ServerConfig>,
     pub viewport: ViewportConfig,
+    /// Default emulated `prefers-color-scheme` for web scenes (scenes can override).
+    pub color_scheme: Option<ColorScheme>,
     pub output: OutputConfig,
     pub font: FontConfig,
     /// Global frame duration in ms, derived from fps (default: 24fps → 41ms).
@@ -420,6 +458,7 @@ impl TeaseConfig {
             scenes: self.scenes,
             server: self.server,
             viewport: self.viewport.unwrap_or_default(),
+            color_scheme: self.color_scheme,
             output: self.output.unwrap_or_default(),
             font: self.font.unwrap_or_default(),
             frame_duration_ms: 1000 / self.fps.unwrap_or(24).max(1) as u64,
@@ -442,4 +481,41 @@ pub struct CapturedFrame {
 pub struct CaptureResult {
     pub scene_name: String,
     pub files: Vec<String>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "lowercase")]
+pub enum SceneStatus {
+    Ok,
+    Failed,
+}
+
+/// What happened to one scene in a run.
+#[derive(Debug, Clone, Serialize)]
+pub struct SceneReport {
+    pub name: String,
+    #[serde(rename = "type")]
+    pub scene_type: String,
+    pub status: SceneStatus,
+    /// Files written for this scene. Empty when the scene failed.
+    pub files: Vec<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub error: Option<String>,
+    pub duration_ms: u64,
+}
+
+/// Every scene of a run, including the ones that failed.
+#[derive(Debug, Clone, Serialize)]
+pub struct RunReport {
+    pub output_dir: String,
+    pub captured: usize,
+    pub failed: usize,
+    pub scenes: Vec<SceneReport>,
+}
+
+impl RunReport {
+    /// True when the run had scenes and none of them produced output.
+    pub fn all_failed(&self) -> bool {
+        self.captured == 0 && !self.scenes.is_empty()
+    }
 }
