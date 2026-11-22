@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.24.0 (2026-11-22)
+
+### Features
+
+- add init, doctor, bootstrap and mcp serve so teasr meets the tool contract (#28) ([f669934](https://github.com/urmzd/teasr/commit/f6699341a283218e6bed701b149169a3d6e4465f))
+
+[Full Changelog](https://github.com/urmzd/teasr/compare/v0.23.0...v0.24.0)
+
+
 ## 0.23.0 (2026-11-22)
 
 ### Features

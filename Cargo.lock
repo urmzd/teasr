@@ -3406,7 +3406,7 @@ checksum = "adb6935a6f5c20170eeceb1a3835a49e12e19d792f6dd344ccc76a985ca5a6ca"
 
 [[package]]
 name = "teasr"
-version = "0.23.0"
+version = "0.24.0"
 dependencies = [
  "anyhow",
  "base64 0.22.1",
@@ -3425,7 +3425,7 @@ dependencies = [
 
 [[package]]
 name = "teasr-core"
-version = "0.23.0"
+version = "0.24.0"
 dependencies = [
  "anstyle-parse 0.2.7",
  "anyhow",
