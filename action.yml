@@ -54,10 +54,21 @@ runs:
         mkdir -p "$HOME/.local/bin"
         echo "Target=$TARGET Binary=$BINARY_NAME"
 
+        # Authenticated API calls get the token's rate limit instead of the
+        # runner IP's shared 60 requests an hour. Falls back to anonymous when
+        # the token cannot read this repository.
+        api_get() {
+          if [ -n "${GH_TOKEN:-}" ]; then
+            curl -fsSL --retry 3 -H "Authorization: Bearer ${GH_TOKEN}" "$1" && return 0
+            echo "::warning::Authenticated request to $1 failed; retrying without a token" >&2
+          fi
+          curl -fsSL --retry 3 "$1"
+        }
+
         # Resolve action ref to a release tag.
         # exact tag (v1.2.3) → prefix match (v1 → v1.x.x) → latest release
         API="https://api.github.com/repos/${TEASR_REPO}"
-        TAGS=$(curl -fsSL "${API}/releases?per_page=100" | jq -r '.[].tag_name')
+        TAGS=$(api_get "${API}/releases?per_page=100" | jq -r '.[].tag_name')
         RELEASE_TAG=$(echo "$TAGS" | grep -xF "$TEASR_REF" | head -1 || true)
         [ -z "$RELEASE_TAG" ] && RELEASE_TAG=$(echo "$TAGS" | grep "^${TEASR_REF}\." | head -1 || true)
         [ -z "$RELEASE_TAG" ] && RELEASE_TAG=$(echo "$TAGS" | head -1)
