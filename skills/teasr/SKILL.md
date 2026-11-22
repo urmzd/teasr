@@ -154,3 +154,16 @@ timeout = 10000
 | `--color-scheme <SCHEME>` | Emulated `prefers-color-scheme` for web scenes: `light` or `dark`. A scene's own `color_scheme` wins |
 | `--format <human\|json>` | Result output. `json` prints one report on stdout: output dir, per-scene status, absolute file paths, and the error of each failed scene |
 | `--scene <NAME>` | Only run scenes matching these names or types. Repeatable or comma-separated; alias `--scenes`. Errors if a name matches no scene |
+
+## MCP Server
+
+`teasr mcp` serves one tool, `capture`, over MCP on stdio. Use it when an agent must produce captures without a `teasr.toml`.
+
+```bash
+teasr mcp --root ./site --output ./captures
+```
+
+- The tool takes `scenes` as JSON, with the `[[scenes]]` fields. Every scene needs a `name`. `formats` is a list of names: `["png", "gif"]`.
+- The result is the `--format json` report, plus PNG outputs as images.
+- `--allow` sets the scene types a caller may run. The default is `web`. `terminal` runs shell commands and `screen` records the display.
+- A local file must be inside `--root`. Each call writes to a new directory under `--output`.

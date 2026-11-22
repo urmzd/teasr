@@ -48,6 +48,7 @@
 - [Configuration Reference](#configuration-reference)
 - [CLI Reference](#cli-reference)
 - [Output Formats](#output-formats)
+- [MCP Server](#mcp-server)
 - [CI Integration](#ci-integration)
 - [Workspace](#workspace)
 - [Agent Skill](#agent-skill)
@@ -444,6 +445,7 @@ teasr [COMMAND]
 
 Commands:
   run     Run capture scenes from teasr.toml (alias: `showme`)
+  mcp     Serve the `capture` tool to an agent over MCP (stdio)
   help    Print this message or the help of the given subcommand(s)
 
 Options:
@@ -520,6 +522,84 @@ Paths are absolute. `error` is present only on a failed scene. The exit code is 
 | `png` | Lossless screenshot. Native, no external tools required. |
 | `gif` | Animated GIF from multi-frame session recording, encoded with gifski (pure Rust). |
 | `mp4` | Video output from multi-frame session recording. |
+
+## MCP Server
+
+`teasr mcp` serves one tool, `capture`, over the Model Context Protocol on stdio. An agent sends scenes and gets back the files written, so it can produce a screenshot or a GIF without a `teasr.toml`.
+
+```bash
+teasr mcp --root ./site --output ./captures
+```
+
+```
+teasr mcp [OPTIONS]
+
+Options:
+      --allow <ALLOW>      Scene types a caller may run (comma-separated: web,terminal,screen) [default: web]
+      --root <ROOT>        Local files a web scene loads must be inside this directory [default: .]
+  -o, --output <OUTPUT>    Each call writes to a new directory under this one [default: ./teasr-output]
+      --timeout <TIMEOUT>  Time limit for one capture call in milliseconds [default: 60000]
+      --verbose            Enable verbose logging (on stderr)
+```
+
+Register it with any MCP client as a stdio server. For example:
+
+```json
+{
+  "mcpServers": {
+    "teasr": { "command": "teasr", "args": ["mcp", "--root", "./site"] }
+  }
+}
+```
+
+### The `capture` tool
+
+Scenes have the same fields as `[[scenes]]` in `teasr.toml`, written as JSON. Two things differ: every scene needs a `name`, and `formats` is a list of names.
+
+```json
+{
+  "color_scheme": "dark",
+  "scenes": [
+    {
+      "type": "web",
+      "name": "pricing",
+      "uri": "https://example.com/pricing",
+      "viewport": { "width": 1280, "height": 720 },
+      "formats": ["png", "gif"],
+      "interactions": [
+        { "type": "snapshot" },
+        { "type": "click", "selector": "#annual" },
+        { "type": "snapshot" }
+      ]
+    }
+  ]
+}
+```
+
+| Argument | Type | Default | Description |
+|----------|------|---------|-------------|
+| `scenes` | array | required | Scenes to capture, in order |
+| `formats` | array | `["png"]` | `"png"`, `"gif"`. A scene's own `formats` wins |
+| `color_scheme` | string | unset | `"light"` or `"dark"`. A scene's own `color_scheme` wins |
+| `viewport` | object | `1280x720` | `{ width, height }` for web scenes |
+| `inline_images` | boolean | `true` | Also return PNG outputs as images: at most 6, each at most 2 MiB |
+
+The result is the same report as [`teasr run --format json`](#json-report), as text and as `structuredContent`, followed by the inline images. A scene that fails while it runs is reported in `scenes` and does not stop the others. `isError` is `true` when every scene failed or the arguments were refused.
+
+### What a caller can do
+
+The limits are set when the server starts. A caller cannot change them.
+
+| Limit | Flag | Default |
+|-------|------|---------|
+| Scene types | `--allow` | `web` only |
+| Local files a web scene can load | `--root` | the working directory |
+| Where files are written | `--output` | `./teasr-output`, one new directory per call |
+
+- `--allow terminal` lets a caller run shell commands. `--allow screen` lets a caller record the display. Allow them only for a caller you trust.
+- A path that leaves `--root`, directly or through a symlink, is refused. Scene names cannot contain a path separator, so a caller cannot write outside its call directory.
+- `[server]` and `[redact]` are not available through the tool.
+- These checks are not a sandbox. A web scene can load any `http(s)` URL the machine can reach, and a local HTML page can reference other local files. Run the server inside a sandbox when the caller is not trusted.
 
 ## CI Integration
 

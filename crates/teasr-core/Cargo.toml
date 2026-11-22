@@ -28,11 +28,11 @@ imgref = "1"
 rgb = "0.8"
 image = { version = "0.25", default-features = false, features = ["png"] }
 regex = "1"
-base64 = "0.22"
+base64.workspace = true
 reqwest = { version = "0.12", default-features = false, features = ["rustls-tls"] }
 futures = "0.3"
 async-trait = "0.1"
-tempfile = "3"
+tempfile.workspace = true
 zip = { version = "9", default-features = false, features = ["deflate"] }
 comrak = { version = "0.36", default-features = false, features = ["syntect"] }
 
