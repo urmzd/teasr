@@ -32,7 +32,10 @@ crates/
 ## Development Workflow
 
 - The entry point is `crates/teasr-cli/src/main.rs`
-- `crates/teasr-cli/src/mcp.rs` is the `teasr mcp` server: JSON-RPC on stdio, one `capture` tool. Nothing but protocol messages may go to stdout
+- `crates/teasr-cli/src/mcp.rs` is the `teasr mcp serve` server: JSON-RPC on stdio, one `capture` tool. Nothing but protocol messages may go to stdout
+- The tool schema is pinned by `crates/teasr-cli/tests/golden/mcp-tools.json`. After an intended schema change, regenerate it: `cargo run -p teasr -- mcp tools > crates/teasr-cli/tests/golden/mcp-tools.json`
+- The usage skill is `crates/teasr-cli/skills/teasr/SKILL.md`. It lives inside the crate because `bootstrap` embeds it and `cargo publish` packages only the crate directory. `skills/teasr` at the repo root is a link to it
+- `init` templates are in `crates/teasr-cli/templates/`; a test loads each one as a config
 - Config is loaded from `teasr.toml` (auto-discovered walking up from cwd)
 - Web capture requires Chrome/Chromium installed on the system
 - Example config exists at `teasr.toml` in the repo root

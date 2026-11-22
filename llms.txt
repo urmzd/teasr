@@ -21,4 +21,4 @@
 ## Optional
 
 - [CONTRIBUTING](https://github.com/urmzd/teasr/blob/main/CONTRIBUTING.md): How to contribute
-- [Skill](https://github.com/urmzd/teasr/blob/main/skills/teasr/SKILL.md): Agent skill for capturing project showcases
+- [Skill](https://github.com/urmzd/teasr/blob/main/crates/teasr-cli/skills/teasr/SKILL.md): Agent skill for capturing project showcases

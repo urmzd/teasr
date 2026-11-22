@@ -1,11 +1,14 @@
 // The `capture` tool schema in mcp.rs is one deep `json!` literal.
 #![recursion_limit = "256"]
 
+mod bootstrap;
+mod doctor;
+mod init;
 mod mcp;
 mod self_update;
 
 use anyhow::{Context, Result};
-use clap::{Parser, Subcommand};
+use clap::{CommandFactory, Parser, Subcommand};
 use std::path::PathBuf;
 use teasr_core::types::{ColorScheme, RunReport, SceneConfig, SceneStatus};
 
@@ -36,43 +39,19 @@ struct Cli {
 
 #[derive(Subcommand, Debug)]
 enum Command {
-    /// Install fonts and check system readiness
-    Setup {
-        /// Font name to install (e.g. "JetBrainsMono Nerd Font"). Lists available if omitted.
-        #[arg(long)]
-        fonts: Option<Option<String>>,
+    /// Write a starter teasr.toml in the current directory
+    Init {
+        /// Template to write (default: terminal). See --list
+        template: Option<String>,
 
-        /// Check if the configured font is available
+        /// List the templates and exit
         #[arg(long)]
-        check: bool,
+        list: bool,
+
+        /// Overwrite teasr.toml if it already exists
+        #[arg(long)]
+        force: bool,
     },
-    /// Serve the `capture` tool to an agent over MCP (stdio)
-    Mcp {
-        /// Scene types a caller may run (comma-separated: web,terminal,screen).
-        /// terminal runs shell commands; screen records the display.
-        #[arg(long, value_delimiter = ',', default_value = "web")]
-        allow: Vec<String>,
-
-        /// Local files a web scene loads must be inside this directory
-        #[arg(long, default_value = ".")]
-        root: PathBuf,
-
-        /// Each call writes to a new directory under this one
-        #[arg(short, long, default_value = "./teasr-output")]
-        output: PathBuf,
-
-        /// Time limit for one capture call in milliseconds
-        #[arg(long, default_value = "60000")]
-        timeout: u64,
-
-        /// Enable verbose logging (on stderr)
-        #[arg(long)]
-        verbose: bool,
-    },
-    /// Self-update teasr to the latest release
-    Update,
-    /// Print the current version
-    Version,
     /// Run capture scenes from teasr.toml
     #[command(alias = "showme")]
     Run {
@@ -121,6 +100,109 @@ enum Command {
         )]
         scenes: Option<Vec<String>>,
     },
+    /// List the fonts teasr can install, or install one by name
+    Fonts {
+        /// Font to install (e.g. "JetBrainsMono Nerd Font"). Lists the fonts if omitted
+        name: Option<String>,
+    },
+    /// Check that teasr can work on this machine
+    Doctor,
+    /// Install the bundled agent skill and register the MCP server
+    Bootstrap {
+        /// Replace a different skill that is already named teasr
+        #[arg(long)]
+        force: bool,
+
+        /// Show what would run without changing anything
+        #[arg(long)]
+        dry_run: bool,
+    },
+    /// Serve teasr to agents over MCP
+    #[command(arg_required_else_help = true)]
+    Mcp {
+        #[command(subcommand)]
+        action: McpAction,
+    },
+    /// Print shell completions on stdout
+    Completions {
+        /// bash, zsh, fish, elvish or powershell
+        shell: clap_complete::Shell,
+    },
+    /// Old name of `fonts` and `doctor`. Kept for one release.
+    #[command(hide = true)]
+    Setup {
+        #[arg(long)]
+        fonts: Option<Option<String>>,
+
+        #[arg(long)]
+        check: bool,
+    },
+    /// Self-update teasr to the latest release
+    Update,
+    /// Print the current version
+    Version,
+}
+
+#[derive(Subcommand, Debug)]
+enum McpAction {
+    /// Serve the `capture` tool on stdio until stdin closes
+    Serve {
+        /// Scene types a caller may run (comma-separated: web,terminal,screen).
+        /// terminal runs shell commands; screen records the display.
+        #[arg(long, value_delimiter = ',', default_value = "web")]
+        allow: Vec<String>,
+
+        /// Local files a web scene loads must be inside this directory
+        #[arg(long, default_value = ".")]
+        root: PathBuf,
+
+        /// Each call writes to a new directory under this one
+        #[arg(short, long, default_value = "./teasr-output")]
+        output: PathBuf,
+
+        /// Time limit for one capture call in milliseconds
+        #[arg(long, default_value = "60000")]
+        timeout: u64,
+
+        /// Enable verbose logging (on stderr)
+        #[arg(long)]
+        verbose: bool,
+    },
+    /// Print the tool list `serve` offers, as JSON on stdout
+    Tools {
+        /// Scene types, as for `serve`: the schema lists only these
+        #[arg(long, value_delimiter = ',', default_value = "web")]
+        allow: Vec<String>,
+    },
+}
+
+/// Send logs to stderr. stdout carries only data: a JSON report or the MCP
+/// protocol.
+fn init_logging(verbose: bool) {
+    let filter = if verbose { "debug" } else { "warn" };
+    tracing_subscriber::fmt()
+        .with_env_filter(
+            tracing_subscriber::EnvFilter::try_from_default_env().unwrap_or_else(|_| filter.into()),
+        )
+        .with_target(false)
+        .with_writer(std::io::stderr)
+        .init();
+}
+
+fn print_json(value: &impl serde::Serialize) -> Result<()> {
+    println!("{}", serde_json::to_string_pretty(value)?);
+    Ok(())
+}
+
+async fn fonts(name: Option<String>) -> Result<()> {
+    match name {
+        Some(name) => teasr_core::setup::install_font(&name).await,
+        None => {
+            teasr_core::setup::list_fonts();
+            teasr_core::ui::info("Install with: teasr fonts \"<font name>\"");
+            Ok(())
+        }
+    }
 }
 
 #[tokio::main]
@@ -128,42 +210,122 @@ async fn main() -> Result<()> {
     let cli = Cli::parse();
 
     match cli.command {
-        Some(Command::Setup { fonts, check }) => {
-            tracing_subscriber::fmt()
-                .with_env_filter(
-                    tracing_subscriber::EnvFilter::try_from_default_env()
-                        .unwrap_or_else(|_| "warn".into()),
-                )
-                .with_target(false)
-                // stdout carries only data (the JSON report); logs go to stderr.
-                .with_writer(std::io::stderr)
-                .init();
-
-            teasr_core::ui::header("teasr setup");
-
-            if check {
-                let family = teasr_core::types::FontConfig::default().family;
-                if teasr_core::setup::check_font(&family) {
-                    teasr_core::ui::phase_ok(&format!("font '{family}' is available"), None);
-                } else {
-                    anyhow::bail!("font '{family}' is NOT available. Run: teasr setup --fonts");
-                }
-                return Ok(());
+        Some(Command::Init {
+            template,
+            list,
+            force,
+        }) => {
+            if list {
+                return match cli.format {
+                    ReportFormat::Json => print_json(&serde_json::json!({
+                        "templates": init::TEMPLATES.iter().map(|t| serde_json::json!({
+                            "name": t.name, "about": t.about,
+                        })).collect::<Vec<_>>(),
+                    })),
+                    ReportFormat::Human => {
+                        for t in init::TEMPLATES {
+                            teasr_core::ui::info(&format!("{:<9} {}", t.name, t.about));
+                        }
+                        Ok(())
+                    }
+                };
             }
-
-            match fonts {
-                Some(Some(name)) => teasr_core::setup::install_font(&name).await?,
-                Some(None) => {
-                    teasr_core::setup::list_fonts();
-                    teasr_core::ui::info("Install with: teasr setup --fonts \"<font name>\"");
+            let template = init::find(template.as_deref().unwrap_or(init::TEMPLATES[0].name))?;
+            let cwd = std::env::current_dir().context("failed to get cwd")?;
+            let path = init::write(&cwd, template, force)?;
+            match cli.format {
+                ReportFormat::Json => print_json(&serde_json::json!({
+                    "path": path, "template": template.name,
+                })),
+                ReportFormat::Human => {
+                    teasr_core::ui::phase_ok("wrote", Some(&path.display().to_string()));
+                    teasr_core::ui::info("Next: teasr run");
+                    Ok(())
                 }
-                None => {
-                    teasr_core::setup::list_fonts();
-                    teasr_core::ui::info("Install with: teasr setup --fonts \"<font name>\"");
-                    teasr_core::ui::info("Check availability: teasr setup --check");
+            }
+        }
+        Some(Command::Fonts { name }) => {
+            init_logging(false);
+            fonts(name).await
+        }
+        Some(Command::Doctor) => {
+            let cwd = std::env::current_dir().context("failed to get cwd")?;
+            let checks = doctor::run(&cwd);
+            match cli.format {
+                ReportFormat::Json => print_json(&serde_json::json!({ "checks": checks }))?,
+                ReportFormat::Human => {
+                    teasr_core::ui::header("teasr doctor");
+                    for c in &checks {
+                        match (&c.fix, c.required) {
+                            (None, _) => teasr_core::ui::phase_ok(&c.detail, None),
+                            (Some(fix), true) => {
+                                teasr_core::ui::error(&format!("{}. Fix: {fix}", c.detail))
+                            }
+                            (Some(fix), false) => {
+                                teasr_core::ui::warn(&format!("{}. Fix: {fix}", c.detail))
+                            }
+                        }
+                    }
                 }
+            }
+            if doctor::failed(&checks) {
+                anyhow::bail!("a required check failed");
             }
             Ok(())
+        }
+        Some(Command::Bootstrap { force, dry_run }) => {
+            let report = bootstrap::bootstrap(force, dry_run)?;
+            match cli.format {
+                ReportFormat::Json => print_json(&report)?,
+                ReportFormat::Human => {
+                    use bootstrap::SkillState;
+                    teasr_core::ui::header("teasr bootstrap");
+                    for step in &report.steps {
+                        if step.ok {
+                            let detail = (!step.detail.is_empty()).then_some(step.detail.as_str());
+                            teasr_core::ui::phase_ok(&step.command, detail);
+                        } else {
+                            teasr_core::ui::error(&format!("{}: {}", step.command, step.detail));
+                        }
+                    }
+                    match report.skill {
+                        SkillState::Installed => teasr_core::ui::phase_ok(
+                            "skill installed for agents",
+                            Some(&report.skill_source),
+                        ),
+                        SkillState::Kept => teasr_core::ui::warn(
+                            "another skill named teasr is installed and was kept. Replace it with: teasr bootstrap --force",
+                        ),
+                        SkillState::Written => {
+                            teasr_core::ui::warn("agentspec is not on PATH, so nothing was installed into your AI tools");
+                            teasr_core::ui::info(&format!("the skill is at {}", report.skill_source));
+                            teasr_core::ui::info("add this server to your tool's MCP config:");
+                            eprintln!("{}", serde_json::to_string_pretty(&report.mcp_server)?);
+                        }
+                    }
+                }
+            }
+            if report.failed() {
+                anyhow::bail!("a bootstrap step failed");
+            }
+            Ok(())
+        }
+        Some(Command::Completions { shell }) => {
+            clap_complete::generate(shell, &mut Cli::command(), "teasr", &mut std::io::stdout());
+            Ok(())
+        }
+        Some(Command::Setup { fonts: name, check }) => {
+            init_logging(false);
+            teasr_core::ui::warn("`teasr setup` is now `teasr fonts` and `teasr doctor`");
+            if check {
+                let family = teasr_core::types::FontConfig::default().family;
+                if !teasr_core::setup::check_font(&family) {
+                    anyhow::bail!("font '{family}' is NOT available. Run: teasr fonts");
+                }
+                teasr_core::ui::phase_ok(&format!("font '{family}' is available"), None);
+                return Ok(());
+            }
+            fonts(name.flatten()).await
         }
         Some(Command::Run {
             config,
@@ -177,16 +339,7 @@ async fn main() -> Result<()> {
             color_scheme,
             scenes,
         }) => {
-            let filter = if verbose { "debug" } else { "warn" };
-            tracing_subscriber::fmt()
-                .with_env_filter(
-                    tracing_subscriber::EnvFilter::try_from_default_env()
-                        .unwrap_or_else(|_| filter.into()),
-                )
-                .with_target(false)
-                // stdout carries only data (the JSON report); logs go to stderr.
-                .with_writer(std::io::stderr)
-                .init();
+            init_logging(verbose);
 
             teasr_core::ui::header("teasr run");
 
@@ -215,41 +368,45 @@ async fn main() -> Result<()> {
                 }
             }
         }
-        Some(Command::Mcp {
-            allow,
-            root,
-            output,
-            timeout,
-            verbose,
-        }) => {
-            let filter = if verbose { "debug" } else { "warn" };
-            tracing_subscriber::fmt()
-                .with_env_filter(
-                    tracing_subscriber::EnvFilter::try_from_default_env()
-                        .unwrap_or_else(|_| filter.into()),
-                )
-                .with_target(false)
-                // stdout is the MCP transport: every log line must go to stderr.
-                .with_writer(std::io::stderr)
-                .init();
-
-            mcp::Server::new(mcp::Options {
+        Some(Command::Mcp { action }) => match action {
+            McpAction::Serve {
                 allow,
                 root,
                 output,
-                timeout: std::time::Duration::from_millis(timeout),
-            })?
-            .serve()
-            .await
-        }
+                timeout,
+                verbose,
+            } => {
+                init_logging(verbose);
+                mcp::Server::new(mcp::Options {
+                    allow,
+                    root,
+                    output,
+                    timeout: std::time::Duration::from_millis(timeout),
+                })?
+                .serve()
+                .await
+            }
+            McpAction::Tools { allow } => print_json(&mcp::tools_list(allow)?),
+        },
         Some(Command::Update) => {
-            eprintln!("current version: {}", env!("CARGO_PKG_VERSION"));
-            match self_update::self_update("urmzd/teasr", env!("CARGO_PKG_VERSION"), "teasr")? {
-                self_update::UpdateResult::AlreadyUpToDate => {
-                    eprintln!("already up to date");
-                }
+            let current = env!("CARGO_PKG_VERSION");
+            let result = self_update::self_update("urmzd/teasr", current, "teasr")?;
+            let (from, to, updated) = match &result {
+                self_update::UpdateResult::AlreadyUpToDate => (current, current, false),
                 self_update::UpdateResult::Updated { from, to } => {
-                    eprintln!("updated: {from} → {to}");
+                    (from.as_str(), to.as_str(), true)
+                }
+            };
+            match cli.format {
+                ReportFormat::Json => print_json(&serde_json::json!({
+                    "from": from, "to": to, "updated": updated,
+                }))?,
+                ReportFormat::Human if updated => {
+                    teasr_core::ui::phase_ok(&format!("updated: {from} → {to}"), None);
+                    teasr_core::ui::info("Refresh the agent skill with: teasr bootstrap");
+                }
+                ReportFormat::Human => {
+                    teasr_core::ui::phase_ok(&format!("already up to date (v{current})"), None)
                 }
             }
             Ok(())
@@ -259,7 +416,7 @@ async fn main() -> Result<()> {
                 ReportFormat::Human => println!("teasr v{}", env!("CARGO_PKG_VERSION")),
                 ReportFormat::Json => println!(
                     "{}",
-                    serde_json::json!({ "version": env!("CARGO_PKG_VERSION") })
+                    serde_json::json!({ "name": "teasr", "version": env!("CARGO_PKG_VERSION") })
                 ),
             }
             Ok(())

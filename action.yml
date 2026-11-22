@@ -17,7 +17,7 @@ inputs:
     description: "Whether to install Chrome (set to 'false' if already available)"
     default: "true"
   install-fonts:
-    description: "Space-separated font families to install via `teasr setup --fonts`"
+    description: "Space-separated font families to install via `teasr fonts`"
   github-token:
     description: "GitHub token for downloading the binary"
     default: ${{ github.token }}
@@ -102,7 +102,7 @@ runs:
         FONTS: ${{ inputs.install-fonts }}
       run: |
         echo "Installing fonts: $FONTS"
-        teasr setup --fonts "$FONTS"
+        teasr fonts "$FONTS"
 
     - name: Run teasr
       shell: bash

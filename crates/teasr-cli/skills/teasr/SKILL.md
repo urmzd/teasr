@@ -6,7 +6,7 @@ description: >
   output as styled PNGs, take web page screenshots via Chrome DevTools Protocol, or
   configure teasr.toml for automated capture pipelines.
 metadata:
-  argument-hint: [--formats png,gif] [--output dir]
+  argument-hint: "[--formats png,gif] [--output dir]"
 ---
 
 # teasr — Project Showcase Capture
@@ -15,7 +15,7 @@ Capture screenshots and GIFs from web apps, terminals, and screens.
 
 ## Steps
 
-1. Ensure `teasr.toml` exists in the project root (or specify with `--config`):
+1. Ensure `teasr.toml` exists in the project root (or specify with `--config`). `teasr init` writes a starter one; `teasr init --list` shows the templates (`terminal`, `web`, `markdown`). Or write it by hand:
    ```toml
    [output]
    dir = "./showcase"
@@ -155,15 +155,33 @@ timeout = 10000
 | `--format <human\|json>` | Result output. `json` prints one report on stdout: output dir, per-scene status, absolute file paths, and the error of each failed scene |
 | `--scene <NAME>` | Only run scenes matching these names or types. Repeatable or comma-separated; alias `--scenes`. Errors if a name matches no scene |
 
+## Other Commands
+
+| Command | Use it to |
+|---------|-----------|
+| `teasr init [TEMPLATE]` | Write a starter `teasr.toml`. It keeps an existing file unless `--force` is set |
+| `teasr doctor` | Find out why a capture cannot run: Chrome, font, config, skill, MCP registration. Each failed check prints its fix |
+| `teasr fonts [NAME]` | List or install a font for terminal scenes |
+| `teasr bootstrap` | Install this skill and register the MCP server in every AI tool, through agentspec |
+| `teasr update` | Update the binary. Run `teasr bootstrap` after it to refresh this skill |
+
+Every command accepts `--format json` and then prints one JSON document on stdout. Read `teasr doctor --format json` before you report that teasr is broken.
+
 ## MCP Server
 
-`teasr mcp` serves one tool, `capture`, over MCP on stdio. Use it when an agent must produce captures without a `teasr.toml`.
+`teasr mcp serve` serves one tool, `capture`, over MCP on stdio. Use it when an agent must produce captures without a `teasr.toml`.
 
 ```bash
-teasr mcp --root ./site --output ./captures
+teasr mcp serve --root ./site --output ./captures
 ```
 
 - The tool takes `scenes` as JSON, with the `[[scenes]]` fields. Every scene needs a `name`. `formats` is a list of names: `["png", "gif"]`.
 - The result is the `--format json` report, plus PNG outputs as images.
 - `--allow` sets the scene types a caller may run. The default is `web`. `terminal` runs shell commands and `screen` records the display.
 - A local file must be inside `--root`. Each call writes to a new directory under `--output`.
+- `teasr mcp tools` prints the tool list and input schema as JSON. Read it instead of guessing an argument.
+- `teasr bootstrap` registers the server. By hand, the client config is:
+
+```json
+{ "mcpServers": { "teasr": { "command": "teasr", "args": ["mcp", "serve"] } } }
+```

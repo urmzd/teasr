@@ -1,0 +1,28 @@
+# teasr.toml: a terminal recording. Needs no browser and no server.
+# Run it with: teasr run
+
+# Mask the user name, host name and home path that the shell prompt shows.
+[redact]
+username = true
+
+[output]
+dir = "./showcase"
+formats = [{ output_type = "gif" }, { output_type = "png" }]
+
+[[scenes]]
+type = "terminal"
+name = "demo"
+cols = 90
+rows = 24
+
+[[scenes.interactions]]
+type = "type"
+text = "echo hello from teasr"
+
+[[scenes.interactions]]
+type = "key"
+key = "enter"
+
+[[scenes.interactions]]
+type = "wait"
+duration = 1000

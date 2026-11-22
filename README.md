@@ -82,7 +82,16 @@ cargo install teasr-cli
 
 ## Quick Start
 
-Create `teasr.toml` in your project root:
+Write a starter config and run it:
+
+```bash
+teasr init          # writes teasr.toml (a terminal recording; needs no browser)
+teasr run           # writes ./showcase/demo.gif and demo.png
+```
+
+`teasr init --list` shows the other templates: `teasr init web`, `teasr init markdown`. `teasr doctor` checks that Chrome is installed for web scenes.
+
+Or create `teasr.toml` in your project root by hand:
 
 ```toml
 [server]
@@ -444,9 +453,16 @@ Config file discovery walks up from the current directory to the filesystem root
 teasr [COMMAND]
 
 Commands:
-  run     Run capture scenes from teasr.toml (alias: `showme`)
-  mcp     Serve the `capture` tool to an agent over MCP (stdio)
-  help    Print this message or the help of the given subcommand(s)
+  init         Write a starter teasr.toml in the current directory
+  run          Run capture scenes from teasr.toml (alias: `showme`)
+  fonts        List the fonts teasr can install, or install one by name
+  doctor       Check that teasr can work on this machine
+  bootstrap    Install the bundled agent skill and register the MCP server
+  mcp          Serve teasr to agents over MCP
+  completions  Print shell completions on stdout
+  update       Self-update teasr to the latest release
+  version      Print the current version
+  help         Print this message or the help of the given subcommand(s)
 
 Options:
       --format <FORMAT>  Result output: human (on stderr) or json (one document on stdout) [default: human]
@@ -515,6 +531,20 @@ Paths are absolute. `error` is present only on a failed scene. The exit code is 
 
 `--format` is not `--formats`: `--formats` picks the capture file types.
 
+### Other commands
+
+| Command | Does |
+|---------|------|
+| `teasr init [TEMPLATE]` | Writes `teasr.toml`. Templates: `terminal` (default), `web`, `markdown`. `--list` shows them. It keeps an existing file unless `--force` is set |
+| `teasr doctor` | Checks Chrome, the font the config asks for, the config file, the installed agent skill and the MCP registration. Prints the fix for each failed check. Exits 1 when Chrome is missing |
+| `teasr fonts [NAME]` | Lists the fonts teasr can install, or installs one |
+| `teasr bootstrap` | Installs the agent skill and registers the MCP server. See [Agent Skill](#agent-skill) |
+| `teasr completions <SHELL>` | Prints completions for `bash`, `zsh`, `fish`, `elvish` or `powershell` |
+| `teasr update` | Replaces the binary with the latest release |
+| `teasr version` | Prints `teasr v<version>` |
+
+Every command accepts `--format json` and then prints one JSON document on stdout. `teasr setup` is the old name of `fonts` and `doctor`; it still works in this release.
+
 ## Output Formats
 
 | Format | Notes |
@@ -525,14 +555,14 @@ Paths are absolute. `error` is present only on a failed scene. The exit code is 
 
 ## MCP Server
 
-`teasr mcp` serves one tool, `capture`, over the Model Context Protocol on stdio. An agent sends scenes and gets back the files written, so it can produce a screenshot or a GIF without a `teasr.toml`.
+`teasr mcp serve` serves one tool, `capture`, over the Model Context Protocol on stdio. An agent sends scenes and gets back the files written, so it can produce a screenshot or a GIF without a `teasr.toml`.
 
 ```bash
-teasr mcp --root ./site --output ./captures
+teasr mcp serve --root ./site --output ./captures
 ```
 
 ```
-teasr mcp [OPTIONS]
+teasr mcp serve [OPTIONS]
 
 Options:
       --allow <ALLOW>      Scene types a caller may run (comma-separated: web,terminal,screen) [default: web]
@@ -542,15 +572,17 @@ Options:
       --verbose            Enable verbose logging (on stderr)
 ```
 
-Register it with any MCP client as a stdio server. For example:
+`teasr bootstrap` registers the server in every AI tool that agentspec manages. To register it by hand, add a stdio server to the client's config:
 
 ```json
 {
   "mcpServers": {
-    "teasr": { "command": "teasr", "args": ["mcp", "--root", "./site"] }
+    "teasr": { "command": "teasr", "args": ["mcp", "serve", "--root", "./site"] }
   }
 }
 ```
+
+`teasr mcp tools` prints the tool list and its input schema as JSON without starting a server. Use it to read the schema, or to pin it: the schema changes when `--allow` changes.
 
 ### The `capture` tool
 
@@ -629,7 +661,24 @@ teasr is a Cargo workspace with two crates:
 
 ## Agent Skill
 
-This repo's conventions are available as portable agent skills in [`skills/`](skills/).
+The usage skill ships inside the binary, so it always matches the version you run. Install it for your AI tools with one command:
+
+```bash
+teasr bootstrap
+```
+
+It does three things through [agentspec](https://github.com/urmzd/agentspec):
+
+1. Writes the skill to `~/.local/share/teasr/skills/teasr/SKILL.md`.
+2. Installs it into every AI tool agentspec manages. Then `/teasr` works in each one.
+3. Registers the [MCP server](#mcp-server) `teasr mcp serve`.
+
+- Run it again after `teasr update` to refresh the skill.
+- A different skill that is already named `teasr` is kept. `--force` replaces it.
+- `--dry-run` shows the commands and changes nothing.
+- Without agentspec, it writes the skill file and prints the MCP config to add by hand.
+
+The skill source is [`crates/teasr-cli/skills/teasr/`](crates/teasr-cli/skills/teasr/); `skills/teasr` links to it. [`skills/teasr-dev/`](skills/teasr-dev/) is for people who change teasr itself.
 
 ## License
 
